@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-饼状图</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+
+    <script>
+        let width = 500,
+            height = 500;
+        let padding = {
+            top: 30,
+            left: 30,
+            right: 300,
+            bottom: 30
+        };
+        // 饼状图内、外圆半径
+        let pieSetting = {
+            innerRadius: 50,  // 内半径：为0则中间没有空白
+            outerRadius: 100,
+            changeOuterRadius: 110
+        };
+        
+        let svg = d3.select('body')
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+        
+        let data = [30, 10, 43, 55, 13];
+        
+        // 数据转换-将数据处理成d3所需要的（startAngle、endAngle等等）
+        let pieLayout = d3.pie(),
+            pieData = pieLayout(data);
+        console.log(pieData)
+        
+        // 生成器-path可以绘制各种图形；使用生成器可以计算路径值
+        let pieArc = d3.arc()  // 创建圆形、环形生成器
+                       .innerRadius(pieSetting.innerRadius)  // 设置环的内半径
+                       .outerRadius(pieSetting.outerRadius)  // 设置环的外半径
+        // 供滑对应环，环变大的效果使用
+        let pieArc2 = d3.arc()  
+                       .innerRadius(pieSetting.innerRadius)
+                       .outerRadius(pieSetting.changeOuterRadius)  // 设置滑上去变大效果的环的外半径
+        
+        let g = svg.selectAll('g')
+                   .data(pieData)
+                   .enter()
+                   .append('g')
+                   .attr('transform', `translate(${width / 2}, ${height / 2})`);
+        
+        // 设置颜色比例尺
+        let colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+        
+        // 添加path，绘制环
+        let piePath = g.append('path')
+                       .attr('fill', (d, i) => colorScale(i))  // 设置环的填充颜色
+                       .attr('d', (d, i) => pieArc(d));  // 使用生成器生成path的路径值
+        
+        g.append('text')
+         .attr('transform', (d, i) => `translate(${pieArc.centroid(d)})`)  // pieArc.centroid()：获取弧线中心
+         .attr('fill', 'white')
+         .attr('text-anchor', 'middle')  // 设置文本居中，text属性：https://blog.csdn.net/chy555chy/article/details/53354895
+         .text((d, i) => d.value);
+        
+        // 通过控制样式放大缩小实现滑上去变大的效果 -- 会出现内环对不齐的情况
+        /* piePath.on('mouseover', function(d, i) {
+                    d3.select(this)
+                      .transition()
+                      .duration(500)
+                      .style('transform', 'scale(1.1)')  
+                })
+                .on('mouseout', function(d, i) {
+                    d3.select(this)
+                      .transition()
+                      .duration(500)
+                      .style('transform', 'scale(1)')  
+                }) */
+                
+        // 滑上饼状图，环变大效果
+        piePath.on('mouseover', function(d, i) {
+                    d3.select(this)
+                    .attr('d', (d, i) => pieArc2(d))
+            })
+            .on('mouseout', function(d, i) {
+                d3.select(this)
+                    .attr('d', (d, i) => pieArc(d))
+            })
+        
+    </script>
+</body>
+</html>

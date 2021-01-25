@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-比例尺</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://www.dazhuanlan.com/2020/03/10/5e671370b0b91/" target="_blank" style="display: block;">序数比例尺</a>
+    <a href="https://segmentfault.com/a/1190000011006780" target="_blank" style="display: block;">常用比例尺</a>
+    
+    <h3>比例尺（scales）：将某一区域的值映射到另一区域，其大小关系不变</h3>
+    <p>比例尺具有定义域（domian）和值域（range）的概念。</p>
+    <p>线性比例尺（V3用linear，V5用scaleLinear（新版本使用这个方法））</p>
+
+    <script>
+        /* ===========================添加比例尺之前================================ */
+        let svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", 600)
+                    .attr("height", 300);
+        
+        svg.append("text")
+           .attr("x", 20)
+           .attr("y", 50)
+           .text("添加比列尺之前：")
+           .attr("fill", "black")
+           .attr("font-size", 22)
+        
+        let data = [250, 0.9, 0.01, 50, 900]; 
+        let g = svg.selectAll("rect")
+                   .data(data)
+                   .enter()
+                   .append("g");
+        
+        g.append("rect")
+         .attr("x", 20)
+         .attr("y", (d, i) => {
+             return i * 30 + 80;
+         })
+         .attr("width", (d, i) => {
+             return d;
+         })
+         .attr("height", 25)
+         .attr("fill", "steelblue");
+        
+
+        g.append("text")
+         .attr("x", d => d + 40)
+         .attr("y", (d, i) => {
+             return i * 30 + 100;
+         })
+         .attr("fill", "red")
+         .text(d => d)
+         
+         
+        /* ===========================添加比例尺之后================================ */
+        
+        let svg1 = d3.select("body")
+                    .append("svg")
+                    .attr("width", 600)
+                    .attr("height", 300);
+        
+        svg1.append("text")
+           .attr("x", 20)
+           .attr("y", 50)
+           .text("添加比列尺之后：")
+           .attr("fill", "black")
+           .attr("font-size", 22);
+        
+        /* 比例尺计算domain:定义域, range:值域 
+        * 0对100，d3.max(data)对500
+        */
+        let scaleLinear = d3.scaleLinear()
+                       .domain([0, d3.max(data)])
+                       .range([100, 500]);
+
+        let g1 = svg1.selectAll("rect")
+                     .data(data)
+                     .enter()
+                     .append("g");
+        
+        g1.append("rect")
+          .attr("x", 20)
+          .attr("y", (d, i) => {
+              return i * 30 + 80;
+          })
+          .attr("width", d => {
+              return scaleLinear(d);   // 比例尺计算宽度
+          })
+          .attr("height", 25)
+          .attr("fill", "purple")
+        
+        g1.append("text")
+          .attr("x", d => scaleLinear(d) + 40)     // 比例尺计算文本位置
+          .attr("y", (d, i) => {
+             return i * 30 + 100;
+          })
+          .attr("fill", "red")
+          .text(d => d)
+          
+    </script>
+</body>
+</html>

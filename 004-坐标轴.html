@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-坐标轴</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        body {
+            overflow: auto;
+        }
+        xmp {
+            font-size: 20px;
+            font-weight: 800;
+        }
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+        .line {
+            stroke:rgb(255,0,0);
+            stroke-width:2
+        }
+        .axios path,
+        .axios line{
+            fill: none;
+            stroke: red;
+        }
+
+        .axios text {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://www.cnblogs.com/chenjy1225/p/10923844.html" target="_blank" style="display: block;">坐标轴文档V5</a>
+    <a href="https://segmentfault.com/a/1190000011006780" target="_blank" style="display: block;">常用比例尺</a>
+
+    <xmp>坐标轴需要使用<g></g>整体包裹</xmp>
+
+    <script>
+        /* 创建text标签 */
+        function createText(dom, x, y, text) {
+            dom.append("text")
+                .attr("x", x)
+                .attr("y", y)
+                .text(text)
+                .style("font-size", 18)
+                .style("font-weight", 600)
+        }
+
+        /* 创建坐标轴 */
+        function createXY(dom, translateX, translateY, cb, className = "axios") {
+            dom.append("g")
+               .attr("class", className)
+               .attr("transform", `translate(${translateX}, ${translateY})`)   // 设置X/Y轴位置
+               .call(cb);  // call()的参数是一个函数，调用之后，将当前的选择集作为参数传给此函数
+        }
+
+
+        /* ===========================手画X轴================================ */
+        let data = [0, 5, 10, 15, 20];
+        
+        /* 创建比例尺-等比例放大横坐标长度 */
+        let scaleLinear = d3.scaleLinear()
+                         .domain([0, d3.max(data)])
+                         .range([20, 800]);
+    
+        let svg = d3.select("body")
+                  .append("svg")
+                  .attr("width", 850)
+                  .attr("height", 800);
+                  
+        createText(svg, 20, 40, "手画X轴（线性比例尺）：");
+
+        let g = svg.append("g");
+
+        let axiosG = g.selectAll("g")
+                    .data(data)
+                    .enter()
+                    .append("g")
+        
+        /* 创建X轴刻度线 */
+        let axios = axiosG.append("line")
+                          .attr("x1", (d, i) => {
+                               return scaleLinear(d) 
+                          })
+                          .attr("y1", 100)
+                          .attr("x2", (d, i) => {
+                              return scaleLinear(d)
+                          })
+                          .attr("y2", 94)
+                          .attr("class", "line");
+        /* 创建X轴刻度标 */
+        let axiosText = axiosG.append("text")
+                              .attr("x", (d, i) => scaleLinear(d) - 10)
+                              .attr("y", 120)
+                              .attr("fill", "#000")
+                              .text((d, i) => d);
+        /* 创建X轴线 */
+        let path = g.append("path")
+                   .attr("d", "M20 100 L810 100")
+                   .attr("stroke", "red")
+                   .attr("stroke-width", 3)
+                   .attr("fill", "none")
+         
+        /* ===========================d3.axisBottom================================ */
+        
+        /* 创建X轴 
+        * 坐标轴的位置，可以通过 transform 属性来设定。
+        * axisBottom: 刻度值位于横轴下方
+        * axisTop：刻度值位于横轴上方
+        * scale: 指定比例尺--d3.axisBottom(scaleLinear)等同于: d3.axisBottom().scale(scaleLinear)
+        * ticks：指定刻度的数量（10个刻度）
+        */
+        let axios1 = d3.axisBottom(scaleLinear)
+                       .ticks(10)
+        
+        createText(svg, 20, 250, "d3画X、Y轴（线性比例尺）：");
+
+        createXY(svg, 20, 700, axios1);
+       
+        /* 创建比例尺-等比例放大纵坐标长度 
+        * range([400, 20]):纵轴值从下到上 数值展示为从小到大
+        */
+        let scaleLinearY = d3.scaleLinear()
+                         .domain([0, d3.max(data)])
+                         .range([400, 20]);
+
+        /* 创建Y轴 
+        * 坐标轴的位置，可以通过 transform 属性来设定。
+        * axisLeft: 刻度值位于纵轴左方
+        * axisRight：刻度值位于纵轴右方
+        * scale: 指定比例尺--d3.axisLeft(scaleLinearY)等同于: d3.axisLeft().scale(scaleLinearY)
+        * ticks：指定刻度的数量（5个刻度）
+        */
+        let ordinate = d3.axisLeft()
+                         .scale(scaleLinearY)
+                         .ticks(5);
+        createXY(svg, 40, 300, ordinate);                
+
+        /* ===========================X坐标周展示================================ */
+        let svg2 = d3.select("body")
+                     .append("svg")
+                     .attr("width", 850)
+                     .attr("height", 800);
+        
+        createText(svg2, 20, 40, "X坐标周展示（序列比例尺）：");
+
+        let dataX = ["周一", "周二", "周三", "周四", "周五", "周六"],
+            dataY = [20, 30, 45, 60, 100, 120]
+        
+        /* 序列比例尺 */
+        let scaleOrdinal = d3.scaleOrdinal()
+                             .domain(dataX)   // 参数必须是数组,
+                             .range([40, 190, 340, 490, 640, 790])
+        
+        let axios2 = d3.axisBottom(scaleOrdinal);
+        createXY(svg2, 0, 500, axios2);
+
+        let scaleLinearY2 = d3.scaleLinear()
+                             .domain([d3.min(dataY), d3.max(dataY)])
+                             .range([400, 0]);
+        let ordinate2 = d3.axisLeft(scaleLinearY2)
+                          .ticks(5);
+    
+        createXY(svg2, 40, 100, ordinate2);
+        
+
+        /* ===========================X坐标时间展示================================ */
+        createText(svg2, 20, 600, "X坐标时间展示：");
+
+        let now = +new Date(),
+            timeData = [];
+        for(let i =0; i < 10; i++) {
+            timeData.push(now += 2000)
+        }
+        /* 时间格式见: https://github.com/d3/d3/wiki/%E6%9C%AC%E5%9C%B0%E5%8C%96#locale_numberFormat
+        * 年-月-日 时:分:秒格式：%Y-%m-%d %H:%M:%S
+        */
+        let format = (time) => d3.timeFormat("%Y-%m-%d %H:%M:%S")(time);
+
+        let scaleLinear2 = d3.scaleLinear()
+                             .domain(d3.extent(timeData))   // extent: 找出一个数组中的最大值和最小值。
+                             .range([20, 700]);
+
+        let axios3 = d3.axisBottom(scaleLinear2)
+                       .tickValues(timeData)   // tickValues: 明确的给出坐标值
+                       .tickFormat(format)     // tickFormat: 刻度值格式化
+                       .tickSize(20)           /* tickSizeOuter: 坐标轴头尾刻度长度（默认6）；
+                                                  tickSizeInner: 坐标轴所有刻度长度（默认6）; 
+                                                  tickSize：指定刻度内、外长度（默认都为6） 
+                                                */
+                       .tickPadding(20);       // tickPadding: 设置刻度值与刻度的距离
+        createXY(svg2, 50, 650, axios3, 'axios rotateAxios');
+        
+        /* 设置横坐标旋转角度 */
+        svg2.selectAll(".rotateAxios text")
+            .attr("dy", ".75em")   // dy、dx：相对(x, y)平移的大小
+            .attr("dx", "-1.75em")
+            .attr("transform", "rotate(-20)")
+    </script>
+</body>
+</html>

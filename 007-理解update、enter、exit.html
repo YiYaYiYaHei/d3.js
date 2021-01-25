@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-理解update、enter、exit.html</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+        dd {
+            font-size: 18px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+
+    
+    <h3>enter()：</h3>
+    <dl>
+        <dt>
+            <dd>1、数据长度>dom长度时，使用enter()创建虚拟dom后再创建真实dom; 会建立多余的空的元素与之对应,enter()对应新增的空的元素</dd>
+            <dd>2、update(): 为已有的dom，通常用于更新属性值</dd>
+            <dd>3、enter()：为多出来的数据对应的虚拟dom，一般先添加元素后再赋予属性值</dd>
+        </dt>
+    </dl>
+
+    <ul>
+        <li></li>
+        <li></li>
+        <li id="li3"></li>
+    </ul>
+
+    <hr />
+    <h3>exit()：</h3>
+    <dl>
+        <dt>
+            <dd>1、数据长度&lt;dom长度时，使用exit()获取多余的dom; 会有多余的元素没有绑定数据，exit()对应没有绑定数据的部分</dd>
+            <dd>2、update(): 为已有的dom，通常用于更新属性值</dd>
+            <dd>3、exit()：为多出来的dom，一般使用remove()删除多余dom</dd>
+        </dt>
+    </dl>
+    <ol>
+        <li></li>
+        <li></li>
+        <li></li>
+    </ol>
+
+    <script>
+        let width = 500,
+            height = 500;
+        
+        /* ===================================update与enter; 数据长度 > dom长度========================================== */
+        /* enter: 数据长度>dom长度 */
+        
+        /* d3.select("ul").selectAll("li"): 父元素为ul
+        * d3.selectAll("ul>li"): 父元素为html
+        * 直接d3.selectAll("ul>li").data(enterData).enter().insert("li", "#li3")会报错：d3.selectAll("ul>li")的父元素html的childNodes中没有li#li3这个dom，导致没有找到插入位置而报错 
+        * insert会从父元素的直接子元素中查找插入位置
+        */
+        let enterDemoLi = d3.select("ul").selectAll("li"),
+            enterData = [1, 2, 3, 4, 5];
+        let enterUpdate = enterDemoLi.data(enterData);
+        enterUpdate.text((d, i) => `enter-update-${d}`);
+        let enterEnter = enterUpdate.enter()
+                                    .insert("li", "#li3");
+        enterEnter.text((d, i) => `enter-enter-${d}`)
+                  .style("color", "red");
+
+
+        /* ===================================update与exit；数据长度 < dom长度========================================== */
+        /* exit: 数据长度 < dom长度，需要使用remove删除多余的dom */
+        let exitDemo = d3.select("ol").selectAll("li"),
+            exitData = [1];
+        let exitUpdate = exitDemo.data(exitData);
+        exitUpdate.text((d, i) => `exit-update-${d}`)
+        let exitExit = exitUpdate.exit();
+        exitExit.text((d, i) => `enter-exit-${d}`)
+                .style("color", "red");
+        // exitExit.remove();    // 通常删除多余的dom
+    </script>
+</body>
+</html>

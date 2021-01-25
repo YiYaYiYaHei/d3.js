@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-完整的饼状图(仿echarts)</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .tooltip {
+            position: absolute;
+            max-width: 150px;
+            padding: 10px;
+            font-size: 14px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .hidden {
+            opacity: 0;
+        }
+        .show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://blog.csdn.net/cjy12138/article/details/85242833" target="_blank" style="display: block;">示例</a>
+    <a href="https://www.jb51.net/article/93095.htm" target="_blank" style="display: block;">示例</a>
+    
+    <script>
+        let width = 800,
+            height = 500;
+        let padding = {
+            top: 30,
+            left: 30,
+            right: 300,
+            bottom: 30
+        };
+        // 饼状图内、外圆半径
+        let pieSetting = {
+            innerRadius: 50,  // 内半径：为0则中间没有空白
+            outerRadius: 100,
+            changeOuterRadius: 110
+        };
+        
+        let svg,   // 画布
+            data,  // 饼状图原始数据
+            pieLayout,  // 将原始数据转换为d3所需的
+            pieData,  // 转换后的数据
+            pieArc1, pieArc2, pieArc3,  // 生成器
+            colorScale = d3.scaleOrdinal(d3.schemeCategory10),  // 设置颜色比例尺;
+            piePath = null,  // 使用Path画饼状图的弧
+            g = null; 
+
+        let tooltip = null;
+
+        let notesRectX = 10,  // 左上角图注-矩形的X
+            notesRectW = 20,  // 左上角图注-矩形的宽
+            notesRectH = 10,  // 左上角图注-矩形的高
+            notesRectPadding = 10;  // 左上角图注-矩形的间距
+
+        initPage();
+        
+        // 初始化页面
+        function initPage() {
+            svg = d3.select('body')
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+            data = [
+                {label: '史部', value: 30, show: true, color: '', id: 'data_1'},   // show：控制是否显示, color: 对应弧颜色（需要初始化时写死，否则每次每次重绘颜色都不一样）,id: 供滑上左上角图注对应弧度变大操作
+                {label: '韦祁', value: 10, show: true, color: '', id: 'data_2'},
+                {label: '禹贾', value: 43, show: true, color: '', id: 'data_3'},
+                {label: '雷玛央', value: 55, show: true, color: '', id: 'data_4'},
+                {label: '薛远', value: 13, show: true, color: '', id: 'data_5'}
+            ];
+            data.map((it, i) => it.color = colorScale(i));  // 设置饼状图各区域的颜色，使的点击左上角的图注后，图注和饼状图各区域颜色一致
+            tooltip = d3.select('body')
+                        .append('div')
+                        .attr('class', 'tooltip hidden');
+            initData();  // 数据转换
+            initArc();   // 初始化饼状图生成器
+
+            drawPieChart(pieData);  // 绘制饼状图
+            
+        }
+        // ==========================================数据转换-将数据处理成d3所需要的（startAngle、endAngle等等）==========================================
+        function initData() {
+            pieLayout = d3.pie().value((d, i) => d.value);   // 设置值访问器,value为取哪个值
+            pieData = pieLayout(data); 
+        }
+        
+        // ==========================================生成器-path可以绘制各种图形；使用生成器可以计算路径值+牵引线的三点位置==========================================
+        function initArc() {
+            pieArc1 = d3.arc()  // 创建圆形、环形生成器
+                        .innerRadius(pieSetting.innerRadius)  // 设置环的内半径
+                        .outerRadius(pieSetting.outerRadius)  // 设置环的外半径
+            // 供滑对应环，环变大的效果使用
+            pieArc2 = d3.arc()  
+                        .innerRadius(pieSetting.innerRadius)
+                        .outerRadius(pieSetting.changeOuterRadius)  // 设置滑上去变大效果的环的外半径 + 设置牵引线的起点
+            pieArc3 = d3.arc()  
+                        .innerRadius(pieSetting.outerRadius * 1.2)
+                        .outerRadius(pieSetting.outerRadius * 1.2)  // 设置牵引线中间的点
+        }
+        
+        
+        // ==========================================添加path，绘制环==========================================
+        function drawPieChart(drawData) {
+            d3.selectAll('g.pie-chart').remove();  // 删除path，进行重新绘制
+            g = svg.selectAll('g.pie-chart')
+                   .data(drawData)
+                   .enter()
+                   .append('g')
+                   .attr('transform', `translate(${width / 2}, ${height / 2})`)
+                   .attr('class', 'pie-chart');
+
+            piePath = g.append('path')
+                       .attr('fill', (d, i) => d.data.color)  // 设置环的填充颜色
+                       .attr('d', (d, i) => pieArc1(d))       // 使用生成器生成path的路径值
+                       .attr('id', d => d.data.id)            // 设置id供滑上左上角图注，对应弧变大操作
+                    
+            g.append('text')
+             .attr('transform', (d, i) => `translate(${pieArc1.centroid(d)})`)  // pieArc.centroid()：获取弧线中心
+             .attr('fill', 'white')
+             .attr('text-anchor', 'middle')  // 设置文本居中，text属性：https://blog.csdn.net/chy555chy/article/details/53354895
+             .text((d, i) => d.value);
+
+             bingMouseEvt();   // 绑定鼠标滑动事件---滑上对应弧度变大
+             addPolyline();    // 添加饼状图牵引线
+             addNotes();       // 添加饼状图左上角图注
+        }
+
+        // ==========================================滑上饼状图，环变大效果==========================================
+        function bingMouseEvt() {
+            g.on('mouseover', function(d, i) {
+                    /* 呈现tooltip */
+                    tooltip.attr('class', 'tooltip show')
+                        .style('left', `${d3.event.clientX + 10}px`)
+                        .style('top', `${d3.event.clientY}px`)
+                        .html(`${d.data.label}: ${d.value}`);
+                    /* 设置滑上变大 */
+                    d3.select(this)
+                      .selectAll(`path#${d.data.id}`)
+                      .attr('d', (d, i) => pieArc2(d));
+              })
+              .on('mouseout', function(d, i) {
+                    /* 隐藏tooltip */
+                    tooltip.attr('class', 'tooltip hidden');
+                    /* 设置滑离复原 */
+                    d3.select(this)
+                      .selectAll(`path#${d.data.id}`)
+                      .attr('d', (d, i) => pieArc1(d));
+              })
+        }
+        
+        // ==========================================添加牵引线==========================================
+        function addPolyline() {
+            let polylineG = g.append('g');
+        
+            /* 饼状图的牵引线由3个点组成
+            *  起点：为实际饼状图弧线的中点 
+            *  中间的点：为虚拟的较大一点的饼状图弧线的中点
+            *  终点：实际是中间的点平移得出，所以只需要算横坐标。横坐标-固定Npx（此处为150px/-150px），根据弧线的起始角度和终止角度计算；纵坐标-为虚拟的较大一点的饼状图弧线的中点的纵坐标
+            */
+            polylineG.append('polyline')
+                    .attr('class', 'polyline')
+                    .attr('points', (d, i) => {
+                        let point1 = pieArc1.centroid(d),
+                            point2 = pieArc3.centroid(d),
+                            point3 = [pieSetting.outerRadius * (getX(d) < Math.PI ? 1.5 : -1.5), point2[1]];
+                        return [point1, point2, point3];
+                    })
+                    .style('fill', 'none')
+                    .style('stroke', (d, i) => d.data.color)   // 设置虚线的颜色
+                    .style('stroke-width', 3) // 设置虚线宽
+                    .style('stroke-dasharray', '5 3');  // 设置虚线长5，间隔3
+            
+            addPolylineText(polylineG);  // 添加牵引线的文本
+        }
+        /* 计算横坐标方向：150px还是-150px */
+        function getX(d) {
+            return d.startAngle + (d.endAngle - d.startAngle) / 2;
+        }
+
+        // ==========================================添加牵引线上的标注==========================================
+        function addPolylineText(polylineG) {
+            polylineG.append('text')
+                 .attr('fill', (d, i) => d.data.color)
+                 .attr('x', (d, i) => getTextPos(d).x)
+                 .attr('y', (d, i) => getTextPos(d).y)
+                 .style('text-anchor', function(d, i) {
+                    return getX(d) < Math.PI ? 'start' : 'end';  // 设置文本对齐方式
+                 })
+                 .text(d => `${d.data.label}: ${d.value}`);
+        }
+        /* 获取文本位置 */
+        function getTextPos(d) {
+            let point2 = pieArc3.centroid(d),
+                point3 = [pieSetting.outerRadius * (getX(d) < Math.PI ? 1.6 : -1.6), point2[1] + 6];
+            return {
+                x: point3[0],
+                y: point3[1]
+            }
+        }
+        
+        // ==========================================添加图注==========================================
+        function addNotes() {
+            let notesG = svg.selectAll('g.notesG')
+                            .data(pieData)
+                            .enter()
+                            .append('g')
+                            .attr('class', 'notesG');
+            /* 绘制矩形 */
+            let notesRect = notesG.append('rect')
+                                .attr('x', notesRectX)
+                                .attr('y', (d, i) => (notesRectH + notesRectPadding) * (i + 1))
+                                .attr('width', notesRectW)
+                                .attr('height', notesRectH)
+                                .attr('fill', (d, i) => d.data.color)
+                                .attr('class', 'notes-rect');
+            /* 绘制图注 */
+            let noteText = notesG.append('text')
+                                .attr('x', notesRectX + notesRectW + notesRectPadding)
+                                .attr('y', (d, i) => (notesRectH + notesRectPadding) * (i + 1) + 10)
+                                .style('font-size', '12px')
+                                .attr('fill', (d, i) => d.data.color)
+                                .text((d) => `${d.data.label}: ${d.value}`)
+                                .attr('class', 'notes-text');
+            bindNotesClickEvt(notesG);   // 图注绑定点击事件---点击，饼状图显示/隐藏对应弧
+            bindNotesMouseEvt(notesG);   // 图注绑定滑上事件---滑上，饼状图对应弧变大
+        }
+
+        // 图注绑定点击事件---点击，饼状图显示/隐藏对应弧
+        function bindNotesClickEvt(notesG) {
+            notesG.on('click', function(d, i) {
+                let index = data.findIndex(it => it.label === d.data.label && it.value === d.data.value);
+                data[index].show = !data[index].show;
+                drawPieData = pieLayout(data.filter(it => it.show));  // 值绘制show为true的弧
+                drawPieChart(drawPieData);  // 重新绘制饼状图
+
+                let currentNotes = d3.select(this);
+                let currentRect = currentNotes.selectAll('rect.notes-rect')
+                                              .attr('fill', (dd, ii) => dd.data.show ? dd.data.color : '#ccc');  // 修改矩形框颜色
+                let currentText = currentNotes.selectAll('text.notes-text')
+                                              .attr('fill', (dd, ii) => dd.data.show ? dd.data.color : '#ccc');  // 修改图注文本颜色
+
+                if (d.data.show) {
+                    notesMouseOverEvt(d3.select(this), d);  // 滑上左上角图注/点击左上角图注时，对应弧变大操作
+                }
+            })
+        }
+        // 图注绑定滑上事件---滑上，饼状图对应弧变大
+        function bindNotesMouseEvt(notesG) {
+            notesG.on('mouseover', function(d, i) {
+                notesMouseOverEvt(d3.select(this), d);   // 滑上左上角图注/点击左上角图注时，对应弧变大操作
+            });
+            notesG.on('mouseout', function(d, i) {
+                /* 设置滑离复原 */
+                d3.select(`path#${d.data.id}`)
+                  .attr('d', (d, i) => pieArc1(d));
+
+                /* 设置滑离图注，对应矩形框复原 */
+                let currentNotes = d3.select(this);
+                let currentRect = currentNotes.selectAll('rect.notes-rect')
+                                              .attr('fill', (dd, ii) => dd.data.show ? dd.data.color : '#ccc');  // 修改矩形框颜色
+            });
+        }
+        
+        // 滑上左上角图注/点击左上角图注时，对应弧变大操作
+        function notesMouseOverEvt(currentNotes, d) {
+            /* 设置滑上变大 --- 通过path的id找到对应弧*/
+            d3.select(`path#${d.data.id}`)
+              .attr('d', (d, i) => pieArc2(d));
+            
+            /* 设置滑上图注，对应矩形框高亮显示 */
+            let currentRect = currentNotes.selectAll('rect.notes-rect')
+                                          .attr('fill', (dd, ii) => '#000');  // 修改矩形框颜色
+        }
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-图表相关</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+
+
+    <script>
+        /* =================创建柱状图=========================== */
+        let svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", 500)
+                    .attr("height", 500);
+        
+        let data = [250 , 210 , 170 , 130 , 90 , 400];
+        
+        /* 创建g标签：要想text显示，需使用g标签进行分组 */
+        let g = svg.selectAll("rect")
+                    .data(data)
+                    .enter() // 为缺失的元素返回占位符。（dom数量少于data的数量时，使用enter选择匹配的虚拟dom）
+                    .append("g");
+        
+        /* 创建矩形标签：设置矩形位置(x、y)、矩形宽高(width、height)、填充颜色(fill) */
+        g.append("rect")
+         .attr("x", 20)
+         .attr("y", (d, i) => {
+            return i * 40;
+         })
+         .attr("width", (d) => {
+            return d;
+         })
+         .attr("height", 30)
+         .attr("fill", "purple");
+
+        /* 创建文本标签：设置文本标签位置(x、y)、文本颜色(fill)、文本内容(text) */
+        g.append("text")
+         .attr("x", (d, i) => {
+            return d + 40;
+         })
+         .attr("y", (d, i) => {
+            return (i * 40) + 20;
+         })
+         .attr("fill", "red")
+         .text((d) => d)
+           
+    </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-事件(柱状图滑上展示tooltip)</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+        .hidden {
+            opacity: 0;    /* 使用display: none；会引起页面重绘，建议操作透明度 */
+        }
+        .show {
+            opacity: 1;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 8px;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://www.cnblogs.com/zhangdi/p/4029285.html" target="_blank" style="display: block;">事件</a>
+    <a href="https://blog.csdn.net/u013147600/article/details/46516193/" target="_blank" style="display: block;">tooltip示例</a>
+
+    <ul>
+        <li>在 D3 中，每一个选择集都有 on() 函数，用于添加事件监听器。</li>
+        <li>当某个事件被监听到时，D3 会把当前的事件存到 d3.event 对象，里面保存了当前事件的各种参数。</li>
+        <li>on只能绑定一个处理函数，多个以最后一个为准</li>
+        <li>使用on实现addEventListener：事件名.命名空间名</li>
+        <li>on对动态生成的dom也有效</li>
+        <li>解绑: on('事件名', null)</li>
+    </ul>
+    <script>
+        let padding = {
+            top: 30,
+            bottom: 30,
+            left: 30,
+            right: 30
+        };
+        let width = 500,
+            height = 500;
+        
+        let svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+        
+        // 创建X轴
+        let xData = [],
+            _now = +new Date(),
+            format = (time, timeFormat = '%H:%M:%S') => d3.timeFormat(timeFormat)(time);  // 格式化时间  年-月-日 时:分:秒格式：%Y-%m-%d %H:%M:%S
+        for (let i = 0; i < 8; i++) {
+            xData.push(_now += 3000)
+        }
+
+        let xScale = d3.scaleBand()
+                       .domain(xData)
+                       .rangeRound([0, width - padding.left - padding.right]);   // scaleOrdinal不支持rangeRound
+        let xAxis = d3.axisBottom(xScale)
+                      .tickValues(xData)
+                      .tickFormat(format);
+        svg.append("g")
+           .attr("class", "axis")
+           .attr("transform", `translate(${padding.left}, ${height - padding.top})`)
+           .call(xAxis);
+        
+        // 创建Y轴
+        let yData = [10, 20, 30, 40, 33, 24, 12, 5];
+        let yScale = d3.scaleLinear()
+                       .domain([0, d3.max(yData)])
+                       .range([height- padding.top - padding.bottom, 0]);
+        let yAxix = d3.axisLeft(yScale);
+        svg.append("g")
+           .attr("transform", `translate(${padding.left}, ${padding.top})`)
+           .call(yAxix);
+        
+        let rectPadding = 4;
+        // 创建矩形框
+        let rect = svg.selectAll("rect")
+                      .data(yData)
+                      .enter()
+                      .append("rect")
+                      .attr("x", (d, i) => xScale(xData[i]))
+                      .attr("y", (d, i) => yScale(d))
+                      .attr("width", xScale.bandwidth() - rectPadding)
+                      .attr("height", (d, i) => height - padding.top - padding.bottom - yScale(d))
+                      .attr("class", "rect")
+                      .attr("fill", 'steelblue')
+                      .attr("transform", `translate(${padding.left}, ${padding.top})`);
+
+        /* 使用on('事件名', 处理函数)进行事件监听
+        *  on可以在被选元素及其子元素上添加一个处理函数，多个处理函数以最后一个为准
+        *  on实现绑定多个处理函数顺序执行(addEventListener)：使用命名空间on('事件名.命名空间', 处理函数)
+        *  on绑定的事件对动态生成的dom也有效 
+        *  解绑: on('事件名', null)
+        */
+        rect.on('mouseover.r', function(d, i) {
+                /* 使用this获取到当前的事件对象：rect元素
+                *  若此处为箭头函数，this指widow，使用d3.select(this)或报错 
+                */
+                d3.select(this)
+                  .attr("fill", "yellow")
+            })
+            .on("mouseout.r", function(d, i) {
+                d3.select(this)
+                  .transition()
+                  .duration(2000)
+                  .attr("fill", "steelblue")
+            })
+        
+        /* 设置tooltip 
+        *  使用div实现el-tooltip的效果
+        *  https://blog.csdn.net/u013147600/article/details/46516193/
+        */
+        let tooltip = d3.select('body')
+                        .append('div')
+                        .attr('class', 'tooltip hidden') 
+            
+        rect.on('mouseover.l', function(d, i) {
+                tooltip.html(`${format(xData[i], '%Y-%m-%d %H:%M:%S')}<br/>数量：${d}`)
+                       .attr('class', 'tooltip show')
+                tooltip.style('left', `${d3.event.clientX}px`)  // d3.event为当前事件对象的各种信息，雷同js的event
+                       .style('top', `${d3.event.clientY}px`)
+            })
+            .on('mouseout.l', function(d, i) {
+                tooltip.attr('class', 'tooltip hidden')
+            })
+    </script>
+</body>
+</html>

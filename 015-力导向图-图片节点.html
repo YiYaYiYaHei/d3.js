@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-力导向图-图片节点</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .line {
+            stroke: #000;
+            stroke-width: 2;
+            stroke-dasharray: 5 3;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank" style="display: block;">力导向图参数</a>
+    
+    <script>
+        let width = 1000, 
+            height = 800;
+        let circleR = 20;   // 节点圆半径
+        
+        let svg = d3.select('body')
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+        // 节点数据
+        let nodesData = [
+            { name: "桂林", image: './images/domain.png', stroke: 'red'}, 
+            { name: "广州", image: './images/shi.jpeg' },
+            { name: "厦门", image: './images/test.jpg' }, 
+            { name: "杭州" },
+            { name: "上海" }, 
+            { name: "青岛", image: './images/email.png' },
+            { name: "天津" }
+        ];
+        /*  连接线数据
+        *   1、source、target默认为nodesData的索引，
+        *   2、也可以是转换后的节点数据，
+        *   3、也可以使用simulation.force('link',d3.forceLink().id(d => d.name))修改 
+        */
+        let linksData = [
+            { source : 0 , target: 1 }, 
+            { source : 0 , target: 2 },
+            { source : 0 , target: 3 }, 
+            { source : 1 , target: 4 },
+            { source : 1 , target: 5 },
+            { source : 1 , target: 6 }
+        ];
+        // ==========================================新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links==========================================
+        let simulation = d3.forceSimulation()
+                           .force('link', d3.forceLink())  // d3.forceLink()：力生成器
+                           .force('charge', d3.forceManyBody().strength(-400))  // 设置节点间的作用力，当strength为正的时候可以模拟重力，当为负的时候可以模拟电荷力（就是那种互斥的感觉）
+                           .force('collision', d3.forceCollide(circleR))  // 设置节点碰撞半径
+                           .force('center', d3.forceCenter());
+
+        // ==========================================生成节点数据==========================================
+        simulation.nodes(nodesData)  // 生成节点数据--转换为d3所需要的nodes数据
+                  .on('tick', tickEvt);   // 动画的计算进入下一步（每一帧都会执行this.tick）
+
+        // ==========================================生成边数据==========================================
+        simulation.force('link')  // 生成连接线数据--转换为d3所需要的link数据
+                  .links(linksData)
+                  .distance(150);  // 设置连接线的长度
+
+        // ==========================================设置图形中心点==========================================
+        simulation.force('center')
+                  .x(width / 2)
+                  .y(height / 2);
+        console.log(nodesData, linksData);
+
+        let g = svg.append('g');
+        // ==========================================颜色比列尺==========================================
+        let colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // ==========================================绘制边--先绘制边再绘制节点，保证边在节点下方==========================================
+        let links = g.selectAll('line.line')
+                     .data(linksData)
+                     .enter()
+                     .append('line')
+                     .attr('class', 'line');
+
+        // ==========================================绘制节点、图片节点==========================================
+        let defs = svg.append('defs');
+        let nodes = g.selectAll('circle.nodes')
+                     .data(nodesData)
+                     .enter()
+                     .append('circle')
+                     .attr('class', 'nodes')
+                     .attr('r', circleR)
+                     .attr('fill', (d, i) => {
+                        if (!d.image) return colorScale(i);
+
+                        defs.append('pattern')   // pattern：以平铺方式填充，可以直接把图片变成圆（此处绘制的是circle）--https://www.nhooo.com/svg/svg-pattern.html
+                           .attr('id', `image_${i}`)  // 供fill="url(#image_${i})"使用
+                           .attr('width', circleR)
+                           .attr('height', circleR)
+                           .append('image')
+                           .attr('x', 0)
+                           .attr('y', 0)
+                           .attr("xlink:href", d.image)
+                           .attr("width", circleR * 2) 
+                           .attr("height", circleR * 2);
+                        return `url(#image_${i})`
+
+                     })
+                     .attr('stroke', d => d.stroke || '')   // 描边
+                     .call(d3.drag()     // 绑定拖拽事件
+                             .on('start', started)
+                             .on('drag', drag)
+                             .on('end', end)
+                     );
+
+        // ==========================================绘制文本==========================================
+        let texts = g.selectAll('text.text')
+                     .data(nodesData)
+                     .enter()
+                     .append('text')
+                     .attr('fill', '#000')
+                     .text((d, i) => d.name);
+
+        // ==========================================帧计算==========================================
+        function tickEvt() {
+            // 计算边位置
+            links.attr('x1', d => d.source.x)
+                 .attr('y1', d => d.source.y)
+                 .attr('x2', d => d.target.x)
+                 .attr('y2', d => d.target.y);
+            
+            // 计算节点位置
+            nodes.attr('cx', d => d.x)
+                 .attr('cy', d => d.y);
+            
+            // 计算文本位置
+            texts.attr('x', d => d.x + circleR + 5)
+                 .attr('y', d => d.y)
+        }
+        
+        // ==========================================拖拽事件==========================================
+        function started(d) {
+            // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
+            if (!d3.event.active) {
+                simulation.alphaTarget(0.8).restart();  // 衰减系数，值越大，图表稳定越快。[0, 1]默认0
+            }
+            // fx fy 表示下次节点被固定的位置
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+        }
+
+        function drag(d) {
+            // fx fy 表示下次节点被固定的位置
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+        }
+
+        function end(d) {
+            // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
+            if (!d3.event.active) {
+                simulation.alphaTarget(0);  // 衰减系数，值越大，图表稳定越快。[0, 1]默认0
+            }
+            // fx fy 表示下次节点被固定的位置
+            d.fx = null;
+            d.fy = null;
+        }
+    </script>
+</body>
+</html>

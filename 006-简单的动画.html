@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-简单的动画</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    
+    <script>
+        function createCircle(dom, r, cx, cy, color) {
+            return dom.append("circle")
+                      .attr("r", r)
+                      .attr("cx", cx)
+                      .attr("cy", cy)
+                      .attr("fill", color)
+        }
+        let width = 500,
+            height = 500;
+
+        let svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+        
+        let circle1 = createCircle(svg, 60, 60, 60, "red");
+        let circle2 = createCircle(svg, 50, 60, 180, "yellow");
+        let circle3 = createCircle(svg, 30, 60, 280, "purple");
+
+        circle1.transition()
+               .duration(2000)
+               .attr("cx", width - 60);
+        
+        circle2.transition()
+               .duration(2000)
+               .delay(500)
+               .attr("cx", width - 50)
+               .attr("fill", "green");
+
+        circle3.transition()
+               .duration(3000)
+               .delay(1000)
+               .attr("cx", 300)
+               .attr("fill", "red")
+               .attr("r", 80)
+    </script>
+</body>
+</html>

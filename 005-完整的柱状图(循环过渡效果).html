@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-完整的柱状图(循环过渡效果)</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+
+    <ul>
+        <li>transition(): 启动过渡效果。</li>
+        <li>duration(): 指定过渡的持续时间，单位为毫秒。</li>
+        <li>ease(): 指定过渡的方式</li>
+        <li>delay(): 指定延迟的时间，表示一定时间后才开始转变，单位为毫秒。</li>
+        <li>.on('end,function): 转换结束后，执行function函数。</li>
+    </ul>
+
+    <script>
+        let padding = {
+            top: 30,
+            bottom: 30,
+            left: 30,
+            right: 30
+        };
+        let width = 500, 
+            height = 500;
+        
+        /* 创建X/Y轴 */
+        function createXY(dom, translateX, translateY, cb, className = "axios") {
+            dom.append("g")
+               .attr("class", className)
+               .attr("transform", `translate(${translateX}, ${translateY})`)   // 设置X/Y轴位置
+               .call(cb);   // call()的参数是一个函数，调用之后，将当前的选择集作为参数传给此函数
+        }
+
+        let svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+        
+        let xData = [],
+            yData = [10, 20, 30, 40, 33, 24, 12, 5];
+        let _time = +new Date();
+        for (let i = 0; i < yData.length; i++) {
+            xData.push(_time += 2000)
+        };
+        /* 格式化时间  年-月-日 时:分:秒格式：%Y-%m-%d %H:%M:%S*/
+        let format = (time) => d3.timeFormat("%H:%M:%S")(time);
+        
+        /* 创建X轴
+        * .domain(d3.range(xData.length)): d3.range(xData.length)为[0, 1, 2, 3, 4, 5, 6, 7]
+        * scaleBand：序数比例尺；与scaleOrdinal区别：scaleBand只能是domain中的数据集，scaleOrdinal不用;   https://segmentfault.com/a/1190000011006780
+        * rangeRound: 保证每个区间段的起点值都是整数;rangeRound等价于V3中的rangeRoundBands
+        */
+        let xScale = d3.scaleBand()
+                       .domain(xData)   /* scaleBand：序数比例尺；参数为数组
+                                           与scaleOrdinal区别：scaleBand只能是domain中的数据集，scaleOrdinal不用; 参数为数组 ; scaleOrdinal不支持rangeRound
+                                           https://segmentfault.com/a/1190000011006780 
+                                        */
+                       .rangeRound([0, width - padding.left - padding.right]);  /* rangeRound: 分成区间段并保证每个区间段的起点值都是整数;
+                                                                                   rangeRound等价于V3中的rangeRoundBands 
+                                                                                   scaleOrdinal不支持rangeRound
+                                                                                */
+        let xAxis = d3.axisBottom(xScale)
+                      .tickValues(xData)
+                      .tickFormat(format);
+        createXY(svg, padding.top, height - padding.bottom, xAxis);
+        
+        /* 创建Y轴 */
+        let yScale = d3.scaleLinear()
+                       .domain([0, d3.max(yData)])
+                       .range([height - padding.top - padding.bottom, 0]);
+        let yAxis = d3.axisLeft(yScale);
+        createXY(svg, padding.left, padding.top, yAxis);
+        
+        /* 矩形间的空白 */
+        let rectPadding = 4;
+        
+        /* 绘制矩形 */
+        let rect = svg.selectAll("rect")
+                      .data(yData)
+                      .enter()
+                      .append("rect")
+                      .attr("width", xScale.bandwidth() - rectPadding)  /*  step(): 两个区间段之间的距离（区间段宽度+两个区间段之间的距离）; 
+                                                                            bandwidth()：获取区间段的宽度
+                                                                            https://www.dazhuanlan.com/2020/03/10/5e671370b0b91/ 
+                                                                        */
+                      .attr("height", (d, i) => {
+                                /* yScale(d): 当前的y坐标，从左上角开始计算 */
+                                return height - padding.top - padding.bottom - yScale(d);
+                        })
+                      .attr("fill", "#0085d0")
+                      .attr("transform", `translate(${padding.left}, ${padding.top})`)
+                      .attr("x", (d, i) => xScale(xData[i]))
+                      .attr("y", (d, i) => yScale(d));
+        
+        /* 绘制矩形标注 */
+        let text = svg.selectAll(".numText")
+                      .data(yData)
+                      .enter()
+                      .append("text")
+                      .attr("class", "numText")
+                      .attr("x", (d, i) => xScale(xData[i]) + (xScale.step() - rectPadding) / 2)
+                      .attr("y", (d, i) => yScale(d) + rectPadding)
+                      .attr("dx", (xScale.step() - rectPadding) / 2)
+                      .attr("dy", padding.top / 2)
+                      .text((d, i) => d)
+        
+
+        /* ==============================柱状图动态效果============================== */
+        
+        /* 矩形过渡 */
+        let run = () => {
+            rect.transition()
+                .duration(4000)
+                .delay((d, i) => {
+                    return 500 * (i + 1)
+                })
+                .attr("height", 0)
+                .attr("y", height - padding.bottom - padding.top)  // 以上实现矩形框消失操作：高度置为0，y值置为横坐标轴位置
+                .transition()
+                .duration(8000)
+                .delay((d, i) => {
+                    return 500 * (i + 1)
+                })
+                .attr("height", (d, i) => height - padding.top - padding.bottom - yScale(d))
+                .attr("y", (d, i) => {
+                    return yScale(d);
+                })  
+                .attr("fill", "#ff5623")  // 以上实现出现矩形框操作：高度置为实际高，y值置为实际值；过渡矩形框背景色
+                .transition()
+                .duration(5000)   // 以上为等待矩形框标注上下跳动操作
+                .on("end", run)   // 过渡无限循环: https://blog.csdn.net/lin5165352/article/details/100354271
+        }
+        run();  // 首次执行过渡事件
+
+        /* 矩形框标注过渡 */
+        let textRun = () => {
+                text.transition()
+                    .duration(4000)
+                    .delay((d, i) => {
+                        return 500 * (i + 1)
+                    })
+                    .attr("y", height - padding.bottom - padding.top)  // 以上实现矩形框标注向下移动：y值置为横坐标轴位置
+                    .transition()
+                    .duration(8000)
+                    .delay((d, i) => {
+                        return 500 * (i + 1)
+                    })
+                    .attr("y", (d, i) => yScale(d) + rectPadding)  // 以上实现矩形框标注向上移动至实际值：y值置为实际值
+                    .transition()
+                    .duration(5000)
+                    .attr("dy", padding.top * 2)
+                    .ease(d3.easeBounce)  // 以上实现矩形框标注上下跳动操作：动画效果:https://blog.csdn.net/lin5165352/article/details/100987332
+                    .on("end", textRun);  // 过渡无限循环: https://blog.csdn.net/lin5165352/article/details/100354271
+        }
+        textRun();  // 首次执行过渡事件
+    </script>
+</body>
+</html>

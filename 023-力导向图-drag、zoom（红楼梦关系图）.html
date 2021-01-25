@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-力导向图-drag、zoom（红楼梦关系图）</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .line {
+            stroke: #000;
+            stroke-width: 2;
+            stroke-dasharray: 5 3;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank">力导向图参数</a>
+    <a href="http://www.qiutianaimeili.com/html/page/2019/10/sqbx59y0slf.html" target="_blank">zoom</a>
+    
+    <script src="./js/dataConfig.js"></script>
+    <script>
+        let width = document.documentElement.clientWidth - 40,
+            height = document.documentElement.clientHeight - 100;
+        let circleR = 20,   // 节点圆半径
+            lineDistance = 100, // 连接线长度   
+            strengthN = -50;   
+        
+        let svg = d3.select('body')
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+
+        let data = getData(NODES) || {nodesData: [], linksData: []};
+        let nodesData = data.nodesData;
+        let linksData = data.linksData;
+
+        // 1、新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links
+        let simulation = d3.forceSimulation()
+                           .force('link',d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器
+                           .force('charge', d3.forceManyBody().strength(strengthN))  // 设置节点间的作用力，当strength为正的时候可以模拟重力，当为负的时候可以模拟电荷力（就是那种互斥的感觉）
+                           .force('collision', d3.forceCollide(circleR))  // 设置节点碰撞半径
+                           .force('center', d3.forceCenter());
+        // 2、生成节点数据
+        simulation.nodes(nodesData)
+                  .on('tick', tickEvt);
+
+        // 3、生成边数据
+        simulation.force('link')  // 生成连接线数据--转换为d3所需要的link数据
+                  .links(linksData)
+                  .distance(lineDistance);  // 设置连接线的长度
+        // 4、设置图形中心点
+        simulation.force('center')
+                  .x(width / 2)
+                  .y(height / 2);
+        console.log(nodesData, linksData);
+        
+        let g = svg.append('g');   // 不建议把zoom绑定在g上：1、会出现抖动情况；2、平移无法实现；3、缩放：只能放大；4、大部分不会触发zoom事件
+        
+        // 8、设置缩放、平移---http://www.qiutianaimeili.com/html/page/2019/10/sqbx59y0slf.html
+        let zoom = d3.zoom()
+                     .scaleExtent([1, 10])   // 放大倍数scaleExtent([最小倍数, 最大倍数])
+                     .on('zoom', zoomed);
+        function zoomed() {
+            let transform = d3.event.transform;
+            g.attr( "transform", transform );
+        }
+        svg.call(zoom);   // 把zoom放到整个svg上，而不是特定的元素上，才能保证在整个图形元素区域都起作用
+
+        // 5、绘制连接线
+        let links = g.selectAll('line.line')
+                     .data(linksData)
+                     .enter()
+                     .append('line')
+                     .attr('class', 'line');
+        // 6、绘制node
+        let nodes = g.selectAll('circle.circle')
+                     .data(nodesData)
+                     .enter()
+                     .append('circle')
+                     .attr('class', 'circle')
+                     .attr('r', circleR)
+                     .attr('fill', (d, i) => d.color)
+                     .call(d3.drag()     // 绑定拖拽事件
+                             .on('start', started)
+                             .on('drag', drag)
+                             .on('end', end)
+                     );
+        
+        // 7、绘制文本
+        let texts = g.selectAll('text.text')
+                     .data(nodesData)
+                     .enter()
+                     .append('text')
+                     .attr('class', 'text')
+                     .attr('fill', '#000')
+                     .text(d => d.name);
+
+        function tickEvt() {
+            // 计算边位置
+            links.attr('x1', d => d.source.x)
+                 .attr('y1', d => d.source.y)
+                 .attr('x2', d => d.target.x)
+                 .attr('y2', d => d.target.y);
+            // 计算node位置
+            nodes.attr('cx', d => d.x)
+                 .attr('cy', d => d.y);
+            // 计算文本的位置
+            texts.attr('x', d => d.x + circleR + 5)
+                 .attr('y', d => d.y);
+        }
+        function started(d) {
+            // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
+            if (!d3.event.active) {
+                simulation.alphaTarget(0.8).restart();  // 衰减系数，值越大，图表稳定越快。[0, 1]默认0
+            }
+            // fx fy 表示下次节点被固定的位置
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+        }
+
+        function drag(d) {
+            // fx fy 表示下次节点被固定的位置
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+        }
+
+        function end(d) {
+            // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
+            if (!d3.event.active) {
+                simulation.alphaTarget(0);  // 衰减系数，值越大，图表稳定越快。[0, 1]默认0
+            }
+            // fx fy 表示下次节点被固定的位置
+            d.fx = null;
+            d.fy = null;
+        }
+    </script>
+</body>
+</html>

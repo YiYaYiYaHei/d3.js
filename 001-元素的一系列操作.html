@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-数据绑定</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+</head>
+<body>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    
+    <ul>
+        <li>第一个li</li>
+        <li>第二个li</li>
+        <li>第三个li</li>
+        <li>第四个li
+            <div>第一个div</div>
+            <div>第二个div</div>
+        </li>
+    </ul>
+
+    <ol>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+    </ol>
+
+    <dl>
+        <dt>
+            <dd></dd>
+            <dd></dd>
+            <dd></dd>
+            <dd></dd>
+        </dt>
+    </dl>
+
+    <p>p1</p>
+    <p class="p2">p2</p>
+
+
+    <script>
+        /* =======================选择元素============================== */
+        /* 1、select()：选择指定元素的第一个;  可为标签名、class名、id名*/
+        let body = d3.select("body");
+        let oDiv = body.select("div");
+        oDiv.style("color", "red")
+           .style("font-size", '18px');
+        
+        /* 2、selectAll()：选择指定元素的所有; 可为标签名、class名、id名*/
+        let aLi = d3.selectAll("li")
+                    .style("color", "blue")
+                    .style("font-size", "22px");
+
+
+        /* =======================绑定数据============================== */
+        /* 1、datum()：绑定非数组 数据 */
+        let str = "test";
+        d3.select("ol")
+          .selectAll("li")
+          .datum(str)
+          .text((d, i) => {
+                return `第${i}个元素，数据是${d}`;
+           })
+        
+        /* 2、data()：绑定数组 数据 */
+        let list = ["2020年12月30日", "15：48", "我在练习d3.js"]
+        d3.selectAll("dd")
+          .data(list)
+          .text((d, i) => {
+              return d;
+          })
+    
+        /* =======================元素增、删============================== */
+        /* 1、append()：插入元素至末尾 */
+        d3.select("body")
+          .append("span")
+          .text("append插入到元素末尾");
+        
+        /* 2、insert()：插入到某个元素之前 --- insert会从父元素的直接子元素中查找插入位置 */
+        d3.select("body")
+          .insert("span", ".p2")
+          .text("insert插入到某个元素(.p2)之前");
+        
+        /* 3、remove()：删除选定的元素 */
+        d3.selectAll("p")
+          .remove();
+
+    </script>
+</body>
+</html>
