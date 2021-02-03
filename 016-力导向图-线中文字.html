@@ -17,30 +17,52 @@
             stroke-width: 2;
             stroke-dasharray: 5 3;
         }
+        strong {
+          display: block;
+          line-height: 50px;
+        }
     </style>
 </head>
 <body>
     <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
     <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
     <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank" style="display: block;">力导向图参数</a>
+    <strong style="color: rgb(214, 39, 40)">textPath可以沿路径布置文本，和path配套使用</strong>
+    <strong style="color: rgb(44, 160, 44)">text也可以在线中间展示，但是呈现不友好</strong>
+    
     <script>
         let width = 1000, 
-            height = 800;
+            height = 700;
         let circleR = 20;   // 节点圆半径
         
         let svg = d3.select('body')
                     .append('svg')
                     .attr('width', width)
                     .attr('height', height);
+        
+        // ==========================================绘制箭头==========================================
+        svg.append('defs')    // <defs>元素通常为SVG图像保留一组可重复使用的定义，类似<components>
+            .append('marker')
+            .attr('id', 'end-arrow')  // 供marker-end="url(#end-arrow)"使用
+            .attr('viewBox', '0 -5 10 10')   // 坐标系区域:x y width height
+            .attr('refX', 26)  // 默认0，坐标设置标记内的点用作参考点
+            .attr('refY', 0)   // 默认0，坐标设置标记内的点用作参考点
+            .attr('markerWidth', 6)  //箭头宽
+            .attr('markerHeight', 6) //箭头高
+            .attr('orient', 'auto')  // 绘制方向，可设定为：auto（自动确认方向）和 角度值
+            .append('path')   // 可为其他标签，若绘制圆可为circle
+            .attr('d', 'M0,-5L10,0L0,5')   //绘制三角形
+            .attr('fill', '#000');
+
         // 节点数据
         let nodesData = [
-            { name: "桂林", relation: '是一个好地方'}, 
-            { name: "广州", relation: '吃不来' },
-            { name: "厦门", relation: '好风景' }, 
-            { name: "杭州", relation: '无感' },
-            { name: "上海", relation: '好有压力' }, 
-            { name: "青岛", relation: '海' },
-            { name: "天津", relation: '狗不理包子' }
+            { name: "桂林"}, 
+            { name: "广州"},
+            { name: "厦门"}, 
+            { name: "杭州"},
+            { name: "上海"}, 
+            { name: "青岛"},
+            { name: "天津"}
         ];
         /*  连接线数据
         *   1、source、target默认为nodesData的索引，
@@ -48,13 +70,14 @@
         *   3、也可以使用simulation.force('link',d3.forceLink().id(d => d.name))修改 
         */
         let linksData = [
-            { source : 0 , target: 1 }, 
-            { source : 0 , target: 2 },
-            { source : 0 , target: 3 }, 
-            { source : 1 , target: 4 },
-            { source : 1 , target: 5 },
-            { source : 1 , target: 6 }
+            { source : 0 , target: 1, relation: '是一个好地方' }, 
+            { source : 0 , target: 2, relation: '吃不来'  },
+            { source : 0 , target: 3, relation: '好风景'  }, 
+            { source : 1 , target: 4, relation: '无感'  },
+            { source : 1 , target: 5, relation: '好有压力'  },
+            { source : 1 , target: 6, relation: '海'  }
         ];
+
         // ==========================================新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links==========================================
         let simulation = d3.forceSimulation()
                            .force('link', d3.forceLink())  // d3.forceLink()：力生成器
@@ -81,13 +104,15 @@
         // ==========================================颜色比列尺==========================================
         let colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
-        // ==========================================绘制边--先绘制边再绘制节点，保证边在节点下方==========================================
+        // ==========================================绘制边(path)--先绘制边再绘制节点，保证边在节点下方==========================================
         let links = g.selectAll('line.line')
                      .data(linksData)
                      .enter()
-                     .append('line')
-                     .attr('class', 'line');
-        
+                     .append('path')
+                     .attr('class', 'line')
+                     .attr('id', (d, i) => `line_${i}`)   // textPath的xlink:href属性需要使用
+                     .attr('marker-end', 'url(#end-arrow)'); // 可为marker-start、marker-mid、marker-end，值为<marker>的id名
+
         // ==========================================绘制节点==========================================
         let nodes = g.selectAll('circle.nodes')
                      .data(nodesData)
@@ -102,21 +127,42 @@
                              .on('end', end)
                      );
 
-        // ==========================================绘制文本==========================================
+        // ==========================================绘制文本、线中文字==========================================
         let texts = g.selectAll('text.text')
                      .data(nodesData)
                      .enter()
                      .append('text')
                      .attr('fill', '#000')
+                     .attr('class', 'text')
                      .text((d, i) => d.name);
+                     
+        // 使用text实现
+        let textTexts = g.selectAll('text.textTexts')
+                         .data(linksData)
+                         .enter()
+                         .append('text')
+                         .attr('fill', 'rgb(44, 160, 44)')
+                         .attr('class', 'textTexts')
+                         .text((d, i) => d.relation);
+
+        // 使用textPath实现--textPath需要跟在text后
+        let pathTextTag = g.selectAll('text.pathTextTag')
+                         .data(linksData)
+                         .enter()
+                         .append('text')
+                         .attr('dx', 60)
+                         .attr('dy', 20)
+                         .attr('fill', 'rgb(214, 39, 40)')
+                         .attr('class', 'pathTextTag');
+        let pathTexts = pathTextTag.append('textPath')
+                                   .text((d, i) => d.relation);
 
         // ==========================================帧计算==========================================
         function tickEvt() {
-            // 计算边位置
-            links.attr('x1', d => d.source.x)
-                 .attr('y1', d => d.source.y)
-                 .attr('x2', d => d.target.x)
-                 .attr('y2', d => d.target.y);
+            // 计算边位置--path参数https://blog.csdn.net/qq_39492374/article/details/89357762
+            links.attr('d', function (d) {
+                return `M${d.source.x} ${d.source.y} L${d.target.x} ${d.target.y}`
+            })
             
             // 计算节点位置
             nodes.attr('cx', d => d.x)
@@ -124,9 +170,25 @@
             
             // 计算文本位置
             texts.attr('x', d => d.x + circleR + 5)
-                 .attr('y', d => d.y)
+                 .attr('y', d => d.y);
+            // text文本计算
+            textTexts.attr('x', d => (d.source.x + d.target.x) / 2)
+                     .attr('y', d => (d.source.y + d.target.y) / 2);
+            // textPath文本计算
+            pathTexts.attr('xlink:href', (d, i) => `#line_${i}`);
+            // 旋转文本，保证文本不会倒过来
+            pathTextTag.attr('transform', (d, i) => {
+                          return getTextRoteta(d)
+                       })
         }
-        
+        function getTextRoteta(d) {
+          if (d.target.x < d.source.x) {
+            return `rotate(180 ${(d.source.x + d.target.x) / 2}, ${(d.source.y + d.target.y) / 2})`
+          } else {
+            return `rotate(0)`
+          }
+        }
+
         // ==========================================拖拽事件==========================================
         function started(d) {
             // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
