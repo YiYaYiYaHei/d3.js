@@ -139,24 +139,15 @@
         let colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
         // ==========================================绘制边--先绘制边再绘制节点，保证边在节点下方==========================================
-        let links = null;
-        drawLink();
-        function drawLink() {
-          links = g.selectAll('line.line')
+        let links = g.selectAll('line.line')
                    .data(linksData)
                    .enter()
                    .append('line')
                    .attr('class', d=> `line ${d.className || 'show'}`)
                    .attr('marker-end', 'url(#end-arrow)'); // 可为marker-start、marker-mid、marker-end，值为<marker>的id名;
-        }
         
         // ==========================================绘制节点==========================================
-        let nodes = null;
-        drawNodes();
-        resetPageContextmenuEvt(); // 页面事件捕获
-        let contextmenuBoxDom = document.getElementById('contextmenuBox');
-        function drawNodes() {
-          nodes = g.selectAll('circle.nodes')
+        let nodes = g.selectAll('circle.nodes')
                     .data(nodesData)
                     .enter()
                     .append('circle')
@@ -164,62 +155,11 @@
                     .attr('r', circleR)
                     .attr('fill', (d, i) => colorScale(i))
                     .attr('data-nodes', 'nodes')
-                    .on('contextmenu', (d, i) => contextmenuEvt(d, i))
                     .call(d3.drag()     // 绑定拖拽事件
                             .on('start', started)
                             .on('drag', drag)
                             .on('end', end)
                     );
-        }
-        // 右键事件
-        function contextmenuEvt(d, i) {
-          event.preventDefault();     // 阻止浏览器默认行为--保证只有右击节点的时候，才显示展开/收起菜单
-          contextmenuBoxDom.setAttribute('style', `left: ${event.clientX + 20}px; top: ${event.clientY}px`);
-          contextmenuBoxDom.setAttribute('class', `show`);
-          // 通过将节点的id作为属性设置给展开/收起按钮，方便查找数据
-          let childrensDom = contextmenuBoxDom.children;
-          Array.prototype.map.call(childrensDom, (item, index, list) => {
-            item.setAttribute('data-nodes-id', d.name);
-          })
-        }
-
-        // 页面事件捕获
-        function resetPageContextmenuEvt() {
-          document.addEventListener('contextmenu', () => {
-            // 只有右击节点的时候，才显示展开/收起菜单
-            if (event.target.getAttribute('data-nodes') !== 'nodes') {
-              contextmenuBoxDom.setAttribute('class', `hide`);
-            }
-          });
-          document.addEventListener('click', () => {
-            // 点击页面，隐藏展开/收起菜单
-            contextmenuBoxDom.setAttribute('class', `hide`);
-          })
-        }
-        
-        // 实现展开/收起效果
-        function resetDrawData(type) {
-          let nodeId = event.target.getAttribute('data-nodes-id');
-          getData(nodeId, type);  // 设置nodes、links的className
-          links = links.attr('class', d => `line ${d.className || 'show'}`)
-                       .merge(links);  //merge()合并数组，类似concat 
-          nodes = nodes.attr('class', d => `nodes ${d.className || 'show'}`)
-                       .merge(nodes);
-          texts = texts.attr('class', d => `text ${d.className || 'show'}`)
-                       .merge(texts);
-        }
-        
-        // 递归处理数据--通过display: none;实现展开/收起效果
-        function getData(name, type) {
-          let _type = type === 'collapse' ? 'hide' : 'show';
-          linksData.map(item => {
-            if (item.source.name === name) {
-              item.className = _type;
-              (nodesData.find(it => it.name === item.target.name) || {}).className = _type;
-              getData(item.target.name, type);
-            }
-          })
-        }
   
         // ==========================================绘制文本==========================================
         let texts = g.selectAll('text.text')
@@ -246,7 +186,66 @@
             texts.attr('x', d => d.x + circleR + 5)
                  .attr('y', d => d.y)
         }
+
+        // ==========================================展开/收起==========================================
+        resetPageContextmenuEvt(); // 页面事件捕获
+        let contextmenuBoxDom = document.getElementById('contextmenuBox');  // 获取右键菜单dom
+        nodes.on('contextmenu', (d, i) => contextmenuEvt(d, i));
+
+        // 右键事件
+        function contextmenuEvt(d, i) {
+          event.preventDefault();     // 阻止浏览器默认行为--保证只有右击节点的时候，才显示展开/收起菜单
+          contextmenuBoxDom.setAttribute('style', `left: ${event.clientX + 20}px; top: ${event.clientY}px`);
+          contextmenuBoxDom.setAttribute('class', `show`);
+          
+          // 通过将节点的id作为属性设置给展开/收起按钮，方便查找数据
+          let childrensDom = contextmenuBoxDom.children;
+          Array.prototype.map.call(childrensDom, (item, index, list) => {
+            item.setAttribute('data-nodes-id', d.name);
+          })
+        }
+
+        // 页面事件捕获
+        function resetPageContextmenuEvt() {
+          document.addEventListener('contextmenu', () => {
+            // 只有右击节点的时候，才显示展开/收起菜单
+            if (event.target.getAttribute('data-nodes') !== 'nodes') {
+              contextmenuBoxDom.setAttribute('class', `hide`);
+            }
+          });
+          document.addEventListener('click', () => {
+            // 点击页面，隐藏展开/收起菜单
+            contextmenuBoxDom.setAttribute('class', `hide`);
+          })
+        }
         
+        // 实现展开/收起效果
+        function resetDrawData(type) {
+          let nodeId = event.target.getAttribute('data-nodes-id');
+
+          getData(nodeId, type);  // 设置nodes、links的className
+
+          links = links.attr('class', d => `line ${d.className || 'show'}`)
+                       .merge(links);  //merge()合并数组，类似concat 
+          nodes = nodes.attr('class', d => `nodes ${d.className || 'show'}`)
+                       .merge(nodes);
+          texts = texts.attr('class', d => `text ${d.className || 'show'}`)
+                       .merge(texts);
+        }
+        
+        // 递归处理数据--通过display: none;实现展开/收起效果
+        function getData(name, type) {
+          let _type = type === 'collapse' ? 'hide' : 'show';
+          linksData.map(item => {
+            if (item.source.name === name) {
+              item.className = _type;
+              (nodesData.find(it => it.name === item.target.name) || {}).className = _type;
+              getData(item.target.name, type);
+            }
+          })
+        }
+
+
         // ==========================================拖拽事件==========================================
         function started(d) {
             // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>d3.js-力导向图-drag</title>
+    <title>d3.js-力导向图-悬停展示该节点线路</title>
     <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
     <style>
         svg {
@@ -23,6 +23,7 @@
     <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
     <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
     <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank" style="display: block;">力导向图参数</a>
+    
     <script>
         let width = 1000, 
             height = 800;
@@ -34,13 +35,14 @@
                     .attr('height', height);
         // 节点数据
         let nodesData = [
-            { name: "桂林" }, 
-            { name: "广州" },
-            { name: "厦门" }, 
-            { name: "杭州" },
-            { name: "上海" }, 
-            { name: "青岛" },
-            { name: "天津" }
+            { name: "桂林", color: 'rgb(44, 160, 44)' }, 
+            { name: "广州", color: 'rgb(214, 39, 40)' },
+            { name: "厦门", color: 'rgb(31, 119, 180)' }, 
+            { name: "杭州", color: 'rgb(140, 86, 75)' },
+            { name: "上海", color: 'rgb(255, 127, 14)' }, 
+            { name: "青岛", color: 'rgb(227, 119, 194)' },
+            { name: "天津", color: 'rgb(148, 103, 189)' },
+            { name: "淄博", color: '#67C23A' },
         ];
         /*  连接线数据
         *   1、source、target默认为nodesData的索引，
@@ -48,16 +50,17 @@
         *   3、也可以使用simulation.force('link',d3.forceLink().id(d => d.name))修改 
         */
         let linksData = [
-            { source : 0 , target: 1 }, 
-            { source : 0 , target: 2 },
-            { source : 0 , target: 3 }, 
-            { source : 1 , target: 4 },
-            { source : 1 , target: 5 },
-            { source : 1 , target: 6 }
+            { source: "桂林" , target: "广州" }, 
+            { source: "桂林" , target: "厦门" },
+            { source: "桂林" , target: "杭州" }, 
+            { source: "广州" , target: "上海" },
+            { source: "广州" , target: "青岛" },
+            { source: "广州" , target: "天津" },
+            { source: "青岛" , target: "淄博" }
         ];
         // ==========================================新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links==========================================
         let simulation = d3.forceSimulation()
-                           .force('link', d3.forceLink())  // d3.forceLink()：力生成器
+        .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
                            .force('charge', d3.forceManyBody().strength(-400))  // 设置节点间的作用力，当strength为正的时候可以模拟重力，当为负的时候可以模拟电荷力（就是那种互斥的感觉）
                            .force('collision', d3.forceCollide(circleR))  // 设置节点碰撞半径
                            .force('center', d3.forceCenter());
@@ -78,15 +81,28 @@
         console.log(nodesData, linksData);
 
         let g = svg.append('g');
-        // ==========================================颜色比列尺==========================================
-        let colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+        
+        // ==========================================绘制箭头==========================================
+        svg.append('defs')    // <defs>元素通常为SVG图像保留一组可重复使用的定义，类似<components>
+            .append('marker')
+            .attr('id', 'end-arrow')  // 供marker-end="url(#end-arrow)"使用
+            .attr('viewBox', '0 -5 10 10')   // 坐标系区域:x y width height
+            .attr('refX', 26)  // 默认0，坐标设置标记内的点用作参考点
+            .attr('refY', 0)   // 默认0，坐标设置标记内的点用作参考点
+            .attr('markerWidth', 6)  //箭头宽
+            .attr('markerHeight', 6) //箭头高
+            .attr('orient', 'auto')  // 绘制方向，可设定为：auto（自动确认方向）和 角度值
+            .append('path')   // 可为其他标签，若绘制圆可为circle
+            .attr('d', 'M0,-5L10,0L0,5')   //绘制三角形
+            .attr('fill', '#000');
 
         // ==========================================绘制边--先绘制边再绘制节点，保证边在节点下方==========================================
         let links = g.selectAll('line.line')
                      .data(linksData)
                      .enter()
                      .append('line')
-                     .attr('class', 'line');
+                     .attr('class', 'line')
+                     .attr('marker-end', 'url(#end-arrow)'); // 可为marker-start、marker-mid、marker-end，值为<marker>的id名
         
         // ==========================================绘制节点==========================================
         let nodes = g.selectAll('circle.nodes')
@@ -95,7 +111,7 @@
                      .append('circle')
                      .attr('class', 'nodes')
                      .attr('r', circleR)
-                     .attr('fill', (d, i) => colorScale(i))
+                     .attr('fill', (d, i) => d.color)
                      .call(d3.drag()     // 绑定拖拽事件
                              .on('start', started)
                              .on('drag', drag)
@@ -126,7 +142,18 @@
             texts.attr('x', d => d.x + circleR + 5)
                  .attr('y', d => d.y)
         }
+
+        // ==========================================滑上展示该节点线路==========================================
+        nodes.on('mouseover', mouseoverEvt);
+        nodes.on('mouseout', mouseoutEvt);
         
+        function mouseoverEvt(d, i) {
+          console.log(d, i);
+          
+        }
+        function mouseoutEvt(d, i) {
+
+        }
         // ==========================================拖拽事件==========================================
         function started(d) {
             // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
