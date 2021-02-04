@@ -167,34 +167,6 @@
                 y: point3[1]
             }
         }
-        
-        // ==========================================添加图注==========================================
-        let rectX = 10,
-            rectW = 20,
-            rectH = 10,
-            rectPadding = 10;
-        let notesG = svg.selectAll('g.notesG')
-                       .data(pieData)
-                       .enter()
-                       .append('g')
-                       .attr('class', 'notesG');
-        /* 绘制矩形 */
-        let notesRect = notesG.append('rect')
-                              .attr('x', rectX)
-                              .attr('y', (d, i) => (rectH + rectPadding) * (i + 1))
-                              .attr('width', rectW)
-                              .attr('height', rectH)
-                              .attr('fill', (d, i) => colorScale(i));
-        /* 绘制图注 */
-        let noteText = notesG.append('text')
-                             .attr('x', rectX + rectW + rectPadding)
-                             .attr('y', (d, i) => (rectH + rectPadding) * (i + 1) + 10)
-                             .style('font-size', '12px')
-                             .attr('fill', (d, i) => colorScale(i))
-                             .text((d) => `${d.data.label}: ${d.value}`);
-        noteText.on('click', function() {
-            console.log(d3.select(this))
-        })
     </script>
 </body>
 </html>
