@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>d3.js-力导向图-悬停展示该节点线路</title>
+    <title>d3.js-SVG添加阴影</title>
     <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
     <style>
         svg {
@@ -20,12 +20,31 @@
     </style>
 </head>
 <body>
-    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
-    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
-    <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank" style="display: block;">力导向图参数</a>
+    <a href="http://know.webhek.com/svg/svg-drop-shadows.html" target="_blank" style="display: block;">svg文档</a>
     
-    <script>
+    <svg width="500" height="500">
+      <defs>
+        <filter id="f1" x="0" y="0">
+          <feOffset result="offOut" in="SourceGraphic" dx="20" dy="20"></feOffset>
+          <feBlend in="SourceGraphic" in2="offOut" mode="normal" />
+        </filter>
         
-    </script>
+        <!-- f2为常用阴影设置 -->
+        <filter id="f2">
+          <feGaussianBlur result="blurOut" in="offOut" stdDeviation="5" />
+          <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+        </filter>
+
+        <filter id="f3" x="0" y="0">
+          <feGaussianBlur result="blurOut" in="offOut" stdDeviation="5" />
+          <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+        </filter>
+      </defs>
+
+      <rect width="100" height="100" stroke="green" stroke-width="3" fill="yellow" filter="url(#f1)" x="20" y="20"></rect>
+      <rect width="100" height="100" stroke="green" stroke-width="3" fill="yellow" filter="url(#f2)" x="200" y="20"></rect>
+      <circle r="50" cx="70" cy="300" stroke="green" stroke-width="3" fill="yellow" filter="url(#f2)"></circle>
+      <circle r="50" cx="250" cy="300" stroke="green" stroke-width="3" fill="yellow" filter="url(#f3)"></circle>
+    </svg>
 </body>
 </html>

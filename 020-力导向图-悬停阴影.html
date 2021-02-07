@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>d3.js-力导向图-悬停展示该节点线路</title>
+    <title>d3.js-力导向图-悬停阴影</title>
     <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
     <style>
         svg {
@@ -23,7 +23,8 @@
     <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
     <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
     <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank" style="display: block;">力导向图参数</a>
-    
+    <a href="http://know.webhek.com/svg/svg-drop-shadows.html" target="_blank" style="display: block;">svg文档</a>
+
     <script>
         let width = 1000, 
             height = 800;
@@ -33,6 +34,21 @@
                     .append('svg')
                     .attr('width', width)
                     .attr('height', height);
+
+        // ==========================================阴影==========================================
+        let filter = svg.append('defs')
+                        .attr('class', 'filter-shadow')
+                        .append('filter')
+                        .attr('id', 'shadow');  // <filter> 标记需要一个id属性，它是这个滤镜的标志。SVG图形使用这个id来引用滤镜
+        filter.append('feGaussianBlur')
+              .attr('result', 'blurOut')
+              .attr('in', 'offOut')
+              .attr('stdDeviation', '5');
+        filter.append('feBlend')
+              .attr('in', 'SourceGraphic')
+              .attr('in2', 'blurOut')
+              .attr('mode', 'normal');
+        
         // 节点数据
         let nodesData = [
             { name: "桂林", color: 'rgb(44, 160, 44)' }, 
@@ -58,6 +74,7 @@
             { source: "广州" , target: "天津" },
             { source: "青岛" , target: "淄博" }
         ];
+
         // ==========================================新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links==========================================
         let simulation = d3.forceSimulation()
         .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
@@ -143,16 +160,15 @@
                  .attr('y', d => d.y)
         }
 
-        // ==========================================滑上展示该节点线路==========================================
+        // ==========================================滑上/滑离==========================================
         nodes.on('mouseover', mouseoverEvt);
         nodes.on('mouseout', mouseoutEvt);
         
         function mouseoverEvt(d, i) {
-          console.log(d, i);
-          
+          d3.event.target.setAttribute('filter', 'url(#shadow)');
         }
         function mouseoutEvt(d, i) {
-
+          d3.event.target.setAttribute('filter', '');
         }
         // ==========================================拖拽事件==========================================
         function started(d) {
