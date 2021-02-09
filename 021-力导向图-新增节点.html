@@ -141,7 +141,6 @@
                    .append('line')
                    .attr('class', 'line')
                    .attr('marker-end', 'url(#end-arrow)'); // 可为marker-start、marker-mid、marker-end，值为<marker>的id名
-          // links.exit().remove();
 
         }
         
@@ -160,7 +159,6 @@
                           .on('drag', drag)
                           .on('end', end)
                    );
-          // nodes.exit().remove();
         }
 
         // ==========================================绘制文本==========================================
@@ -173,7 +171,6 @@
                    .attr('class', 'text')
                    .attr('fill', '#000')
                    .text((d, i) => d.name);
-          // texts.exit().remove();
         }
 
         // ==========================================帧计算==========================================
@@ -198,10 +195,10 @@
         d3.selectAll('.add').on('click', function() {
           let obj = {name: `新增节点${+new Date()}`, color: '#909399'};
           nodesData.push(obj);
-          let sourceIndex = Math.floor(Math.random()*8);
+          let sourceIndex = Math.floor(Math.random()*8);   // 随机插入
           linksData.push({source: nodesData[sourceIndex].name, target: obj.name});
-          makeData();
-          drawData();
+          makeData();  // 重新生成数据
+          drawData();  // 重新绘制
         })
         
         d3.selectAll('.back').on('click', () =>{

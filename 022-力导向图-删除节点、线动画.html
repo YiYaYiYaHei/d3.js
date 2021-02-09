@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>d3.js-力导向图-悬停展示该节点线路</title>
+    <title>d3.js-力导向图-删除节点、线动画</title>
     <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
     <style>
         svg {
+            display: block;
             margin-top: 20px;
             border: 1px solid #ccc;
             cursor: pointer;
@@ -17,6 +18,9 @@
             stroke-width: 2;
             stroke-dasharray: 5 3;
         }
+        button {
+          margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -24,9 +28,11 @@
     <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
     <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank" style="display: block;">力导向图参数</a>
     
+    <button class="delete">删除</button>
+
     <script>
         let width = 1000, 
-            height = 800;
+            height = 750;
         let circleR = 20;   // 节点圆半径
         
         let svg = d3.select('body')
@@ -60,7 +66,7 @@
         ];
         // ==========================================新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links==========================================
         let simulation = d3.forceSimulation()
-        .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
+                           .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
                            .force('charge', d3.forceManyBody().strength(-400))  // 设置节点间的作用力，当strength为正的时候可以模拟重力，当为负的时候可以模拟电荷力（就是那种互斥的感觉）
                            .force('collision', d3.forceCollide(circleR))  // 设置节点碰撞半径
                            .force('center', d3.forceCenter());
@@ -96,35 +102,68 @@
             .attr('d', 'M0,-5L10,0L0,5')   //绘制三角形
             .attr('fill', '#000');
 
+        // 绘制数据
+        let links = null;
+        let nodes = null;
+        let texts = null;
+        drawData();
+        function drawData() {
+          drawLine();
+          drawNodes();
+          drawTexts();
+          simulation.alpha(1).restart();   // restart()：重新绘制；alpha(1)：值越大，图表稳定越快。[0, 1]默认0
+        }
         // ==========================================绘制边--先绘制边再绘制节点，保证边在节点下方==========================================
-        let links = g.selectAll('line.line')
-                     .data(linksData)
-                     .enter()
-                     .append('line')
-                     .attr('class', 'line')
-                     .attr('marker-end', 'url(#end-arrow)'); // 可为marker-start、marker-mid、marker-end，值为<marker>的id名
+        function drawLine() {
+          // g.selectAll('line.line').data(linksData, d => `${d.source.name}_${d.target.name}`).exit().remove();
+          links = g.selectAll('line.line')
+                   .data(linksData, d => `${d.source.name}_${d.target.name}`)
+                   .enter()
+                   .append('line')
+                   .attr('class', 'line')
+                   .attr('id', d => `${d.source.name}_${d.target.name}` )
+                   .attr('marker-end', 'url(#end-arrow)')// 可为marker-start、marker-mid、marker-end，值为<marker>的id名
+          // 线动画
+          links.append('animate')
+                .attr('attributeName', 'stroke-dashoffset')
+                .attr('from', '0')
+                .attr('to', '-100')
+                .attr('begin', '0s')
+                .attr('dur', '3s')
+                .attr('repeatCount', 'indefinite');
+        }
         
         // ==========================================绘制节点==========================================
-        let nodes = g.selectAll('circle.nodes')
-                     .data(nodesData)
-                     .enter()
-                     .append('circle')
-                     .attr('class', 'nodes')
-                     .attr('r', circleR)
-                     .attr('fill', (d, i) => d.color)
-                     .call(d3.drag()     // 绑定拖拽事件
-                             .on('start', started)
-                             .on('drag', drag)
-                             .on('end', end)
-                     );
+        function drawNodes() {
+          // g.selectAll('circle.nodes').data(nodesData, d => `nodes_${d.name}`).exit().remove();
+          nodes = g.selectAll('circle.nodes')
+                   .data(nodesData, d => `nodes_${d.name}`)
+                   .enter()
+                   .append('circle')
+                   .attr('class', 'nodes')
+                   .attr('r', circleR)
+                   .attr('id', d => `nodes_${d.name}`)
+                   .attr('fill', (d, i) => d.color)
+                   .call(d3.drag()     // 绑定拖拽事件
+                          .on('start', started)
+                          .on('drag', drag)
+                          .on('end', end)
+                   );
+          console.log(nodes)
+        }
 
         // ==========================================绘制文本==========================================
-        let texts = g.selectAll('text.text')
-                     .data(nodesData)
-                     .enter()
-                     .append('text')
-                     .attr('fill', '#000')
-                     .text((d, i) => d.name);
+        function drawTexts() {
+          // g.selectAll('text.text').data(nodesData, d => `texts_${d.name}`).exit().remove();
+          texts = g.selectAll('text.text')
+                   .data(nodesData, d => `texts_${d.name}`)
+                   .enter()
+                   .append('text')
+                   .attr('class', 'text')
+                   .attr('id', d => `texts_${d.name}`)
+                   .attr('fill', '#000')
+                   .text((d, i) => d.name);
+        }
 
         // ==========================================帧计算==========================================
         function tickEvt() {
@@ -143,17 +182,28 @@
                  .attr('y', d => d.y)
         }
 
-        // ==========================================滑上展示该节点线路==========================================
-        nodes.on('mouseover', mouseoverEvt);
-        nodes.on('mouseout', mouseoutEvt);
-        
-        function mouseoverEvt(d, i) {
-          console.log(d, i);
+        // ==========================================删除节点==========================================
+        /** 删除有两种方法：
+        * 1、使用exit（）---但是我也不知道为啥删除后，节点不能拖拽了（主要是获取nodes为empty，暂时没找到原因）
+        * 2、直接获取节点删除dom 
+        */
+        d3.selectAll('.delete').on('click', () => {
+          let nodeData = nodesData.pop();
+          let _linksData = [];
+          linksData.map(it => {
+            if (it.target.name !== nodeData.name) {
+              _linksData.push(it)
+            } else {
+              d3.selectAll(`#${it.source.name}_${it.target.name}`).remove()
+            }
+          } );
+          linksData = JSON.parse(JSON.stringify(_linksData));
           
-        }
-        function mouseoutEvt(d, i) {
+          d3.selectAll(`#nodes_${nodeData.name}`).remove();
+          d3.selectAll(`#texts_${nodeData.name}`).remove()
+          // drawData();
+        })
 
-        }
         // ==========================================拖拽事件==========================================
         function started(d) {
             // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
