@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>d3.js-力导向图-悬停展示该节点线路</title>
+    <title>d3.js-力导向图-浏览器resize</title>
     <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
     <style>
         svg {
@@ -25,14 +25,24 @@
     <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank" style="display: block;">力导向图参数</a>
     
     <script>
-        let width = 1000, 
-            height = 800;
+        let widthPercent = 0.8,
+            heightPercent = 0.8,
+            width = 0, 
+            height = 0;
         let circleR = 20;   // 节点圆半径
         
+        // 重新获取svg宽高
+        function getSvgWH() {
+          width = document.documentElement.clientWidth * widthPercent, 
+          height = document.documentElement.clientHeight * heightPercent;
+        }
+
+        getSvgWH();
         let svg = d3.select('body')
                     .append('svg')
                     .attr('width', width)
                     .attr('height', height);
+                  
         // 节点数据
         let nodesData = [
             { name: "桂林", color: 'rgb(44, 160, 44)' }, 
@@ -60,7 +70,7 @@
         ];
         // ==========================================新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links==========================================
         let simulation = d3.forceSimulation()
-        .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
+                           .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
                            .force('charge', d3.forceManyBody().strength(-400))  // 设置节点间的作用力，当strength为正的时候可以模拟重力，当为负的时候可以模拟电荷力（就是那种互斥的感觉）
                            .force('collision', d3.forceCollide(circleR))  // 设置节点碰撞半径
                            .force('center', d3.forceCenter());
@@ -78,8 +88,6 @@
         simulation.force('center')
                   .x(width / 2)
                   .y(height / 2);
-        console.log(nodesData, linksData);
-
         let g = svg.append('g');
         
         // ==========================================绘制箭头==========================================
@@ -143,16 +151,20 @@
                  .attr('y', d => d.y)
         }
 
-        // ==========================================滑上展示该节点线路==========================================
-        nodes.on('mouseover', mouseoverEvt);
-        nodes.on('mouseout', mouseoutEvt);
-        
-        function mouseoverEvt(d, i) {
-          console.log(d, i);
-          
-        }
-        function mouseoutEvt(d, i) {
+        // ==========================================浏览器resize==========================================
+        window.onresize = () => {
+          // 1、重新获取svg宽高并设置
+          getSvgWH();
+          svg.attr('width', width)
+             .attr('height', height);
 
+          // 2、重新绘制力导向图中心点
+          simulation.force('center')
+                  .x(width / 2)
+                  .y(height / 2);
+                  
+          // 3、调用力导向图api重新绘制
+          simulation.alpha(1).restart();   // restart()：重新绘制；alpha(1)：值越大，图表稳定越快。[0, 1]默认0
         }
         // ==========================================拖拽事件==========================================
         function started(d) {

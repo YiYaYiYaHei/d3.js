@@ -183,7 +183,7 @@
           linksData.map(item => item.isFocus = flag);
         }
 
-        // 递归处理数据--通过isFocus=true判断是否“聚焦”，修改线、节点、文本的样式即可
+        // 递归处理数据--通过isFocus=true判断是否“聚焦”(true高亮，false置灰)，修改线、节点、文本的样式即可
         function getData(name) {
           linksData.map(item => {
             if (item.source.name === name) {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>d3.js-力导向图-悬停展示该节点线路</title>
+    <title>d3.js-力导向图-icon</title>
     <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
     <style>
         svg {
@@ -17,6 +17,22 @@
             stroke-width: 2;
             stroke-dasharray: 5 3;
         }
+        @font-face {
+          font-family: 'iconfont';
+          src: url('./css/icon/iconfont.eot');
+          src: url('./css/icon/iconfont.eot?#iefix') format('embedded-opentype'),
+              url('./css/icon/iconfont.woff2') format('woff2'),
+              url('./css/icon/iconfont.woff') format('woff'),
+              url('./css/icon/iconfont.ttf') format('truetype'),
+              url('./css/icon/iconfont.svg#iconfont') format('svg');
+        }
+        .iconfont {
+          font-family: "iconfont" !important;
+          font-size: 22px;
+          font-style: normal;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
     </style>
 </head>
 <body>
@@ -24,6 +40,7 @@
     <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
     <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank" style="display: block;">力导向图参数</a>
     
+
     <script>
         let width = 1000, 
             height = 800;
@@ -35,14 +52,14 @@
                     .attr('height', height);
         // 节点数据
         let nodesData = [
-            { name: "桂林", color: 'rgb(44, 160, 44)' }, 
-            { name: "广州", color: 'rgb(214, 39, 40)' },
-            { name: "厦门", color: 'rgb(31, 119, 180)' }, 
-            { name: "杭州", color: 'rgb(140, 86, 75)' },
-            { name: "上海", color: 'rgb(255, 127, 14)' }, 
-            { name: "青岛", color: 'rgb(227, 119, 194)' },
-            { name: "天津", color: 'rgb(148, 103, 189)' },
-            { name: "淄博", color: '#67C23A' },
+            { name: "桂林", color: 'rgb(44, 160, 44)', icon: '&#xe683;'}, 
+            { name: "广州", color: 'rgb(214, 39, 40)', icon: '&#xe60b;'},
+            { name: "厦门", color: 'rgb(31, 119, 180)', icon: '&#xe610;'}, 
+            { name: "杭州", color: 'rgb(140, 86, 75)', icon: '&#xe60e;'},
+            { name: "上海", color: 'rgb(255, 127, 14)', icon: '&#xe605;'}, 
+            { name: "青岛", color: 'rgb(227, 119, 194)', icon: '&#xe61e;'},
+            { name: "天津", color: 'rgb(148, 103, 189)', icon: '&#xe635;'},
+            { name: "淄博", color: '#67C23A', icon: '&#xe623;'},
         ];
         /*  连接线数据
         *   1、source、target默认为nodesData的索引，
@@ -60,7 +77,7 @@
         ];
         // ==========================================新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links==========================================
         let simulation = d3.forceSimulation()
-        .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
+                           .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
                            .force('charge', d3.forceManyBody().strength(-400))  // 设置节点间的作用力，当strength为正的时候可以模拟重力，当为负的时候可以模拟电荷力（就是那种互斥的感觉）
                            .force('collision', d3.forceCollide(circleR))  // 设置节点碰撞半径
                            .force('center', d3.forceCenter());
@@ -123,8 +140,22 @@
                      .data(nodesData)
                      .enter()
                      .append('text')
+                     .attr('class', 'text')
                      .attr('fill', '#000')
                      .text((d, i) => d.name);
+
+        // ==========================================绘制icon==========================================
+        let iconG = svg.append('g')
+                       .attr('class', 'icon-group');
+        
+        // 阿里图标：通过设置class无法生效，使用v-html可以
+        let icons = iconG.selectAll('text.iconfont')
+                        .data(nodesData)
+                        .enter()
+                        .append('text')
+                        .attr('class', 'iconfont')
+                        .attr('fill', '#F56C6C')
+                        .html(d => d.icon);
 
         // ==========================================帧计算==========================================
         function tickEvt() {
@@ -139,21 +170,15 @@
                  .attr('cy', d => d.y);
             
             // 计算文本位置
-            texts.attr('x', d => d.x + circleR + 5)
-                 .attr('y', d => d.y)
+            texts.attr('x', d => d.x + circleR + 30)
+                 .attr('y', d => d.y + 5)
+            
+            // 设置icon位置
+            icons.attr('x', d => d.x + circleR + 5)
+                 .attr('y', d => d.y + 5)
         }
 
-        // ==========================================滑上展示该节点线路==========================================
-        nodes.on('mouseover', mouseoverEvt);
-        nodes.on('mouseout', mouseoutEvt);
         
-        function mouseoverEvt(d, i) {
-          console.log(d, i);
-          
-        }
-        function mouseoutEvt(d, i) {
-
-        }
         // ==========================================拖拽事件==========================================
         function started(d) {
             // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
