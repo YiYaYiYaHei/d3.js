@@ -1,0 +1,46 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  padding: 8px;
+  position: relative;
+}
+svg {
+  display: block;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.show {
+  display: block;
+}
+.hide {
+  display: none;
+}
+foreignObject.text {
+  position: relative;
+  font-size: 14px;
+}
+foreignObject.big-text {
+  font-size: 18px;
+}
+foreignObject.text > .node-text {
+  width: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #000;
+  text-align: center;
+}
+.big-rect {
+  stroke: #000;
+  stroke-width: 3;
+}
