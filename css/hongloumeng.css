@@ -1,0 +1,109 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  padding: 8px;
+  position: relative;
+}
+svg {
+  display: block;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+.line {
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+.text {
+  font-size: 12px;
+}
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.show {
+  display: block;
+}
+.hide {
+  display: none;
+}
+
+/* 左下角图注样式---start--- */
+#left-bottom-tips {
+  position: absolute;
+  bottom: 9px;
+  left: 9px;
+  width: 100px;
+  padding: 8px 20px;
+  list-style: none;
+  cursor: pointer;
+  background: #fff;
+}
+#left-bottom-tips li {
+  margin: 10px 0;
+}
+#left-bottom-tips li:hover span {
+  font-size: 16px;
+  color: rgb(42, 202, 202);
+}
+#left-bottom-tips li:hover img {
+  border: 1px solid rgb(42, 202, 202);
+}
+#left-bottom-tips img {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #000;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+#left-bottom-tips span {
+  font-size: 14px;
+  transition: all .5s;
+}
+#left-bottom-tips li.left-bottom-tips-li-grey {
+  color: #ccc;
+}
+#left-bottom-tips li.left-bottom-tips-li-grey>img {
+  border: 1px solid #ccc;
+}
+/* 左下角图注样式---end--- */
+
+/* tooltips样式---start--- */
+#tooltips {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 10px;
+  background: #fff;
+  box-shadow: 0px 0px 5px #888888;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #606266;
+}
+#tooltips > div {
+  height: 22px;
+  line-height: 22px;
+}
+#tooltips span {
+  display: inline-block;
+  vertical-align: middle;
+}
+#tooltips .family-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #000;
+}
+#tooltips .node-label {
+  width: 90px;
+  font-weight: 600;
+  text-align-last: justify;
+}
+#tooltips .node-value {
+  width: 100px;
+}
+/* tooltips样式---end--- */

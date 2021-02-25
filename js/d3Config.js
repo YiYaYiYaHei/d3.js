@@ -1,211 +1,208 @@
-import * as d3 from "d3";
+let widthP = 0.9,
+    heightP = 0.85,
+    leftBottomTipsCircleR = 16,
+    leftBottomImageSize = {  // 左下角图注头像尺寸
+      pWidth: leftBottomTipsCircleR, // pattern 宽
+      pHeight: leftBottomTipsCircleR, // pattern 高
+      iWidth: leftBottomTipsCircleR * 2,  // image 宽
+      iHeight: leftBottomTipsCircleR * 2  // image 高
+    };
 
-var svg, forceSimulation, linksData, links, nodesData, nodes, texts;
+// 自执行函数--引入其他js文件   https://www.jb51.net/article/195401.htm
+(function(){
+  document.write("<script language=javascript src='./js/d3.v5.min.js'></script>");
+})()
 
-/* 获取容器宽高 */
-function getContainerSize(clsName) {
-    let dom = document.querySelector(clsName);
-    return {
-        width: dom.getBoundingClientRect().width,
-        height: dom.getBoundingClientRect().height
+// 获取svg宽高
+function getSVGSize() {
+  return {
+    width: document.documentElement.clientWidth * widthP,
+    height: document.documentElement.clientHeight * heightP
+  }
+}
+// 重新设置svg宽高
+function resetSvgSize(svg, width, height) {
+  svg.attr('width', width)
+     .attr('height', height);
+}
+
+// 对象转数组
+function objTransArray(obj) {
+  let list = [];
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      list.push({
+        name: key,
+        value: obj[key]
+      })
     }
+  }
+  return list;
 }
 
-/* 初始化力导向图 */
-function initForceSimulation(data) {
-    let containerSize = getContainerSize('.d3-page-container');
-    svg = d3.select("svg")
-            .attr("width", containerSize.width)
-            .attr("height", containerSize.height)
-            .call(d3.zoom()
-                    .scaleExtent([1, 10])   // 设置缩放范围
-                    .on("zoom", () => {
-                        /* 缩放和平移操作 */
-                        svg.attr("transform", d3.event.transform)
-                    })
-            );
-
-    let obj = getData(data, [], []) || {linkData: [], nodeData: []};
-    nodesData = obj.nodeData;
-    linksData = getLinksData(obj.linkData);
-                   
-    /* 创建力导向图 */
-    forceSimulation = d3.forceSimulation()
-                      .force("link", d3.forceLink())
-                      .force("charge", d3.forceManyBody())
-                      .force('collision', d3.forceCollide(18))
-                      .force("center", d3.forceCenter());
-    /* 创建节点数据 */
-    forceSimulation.nodes(nodesData)
-                   .on("tick", ticked);
-    /* 创建边数据 */
-    forceSimulation.force("link")
-                   .links(linksData)
-                   .distance((d) => {
-                       return 60;
-                   })
-    /* 设置图形中心位置 */
-    forceSimulation.force("center")
-                   .x(containerSize.width / 2)
-                   .y(containerSize.height / 2);
-
-    /* 边 */
-    links = svg.append("g")
-             .attr("class", "links")
-             .selectAll("line")
-             .data(linksData)
-             .enter()
-             .append("line")
-             .attr("stroke", (d, i) => {
-                 return d.color;
-             })
-             .attr("stroke-width", 1);
-    /* 文本 */
-    texts = svg.append("g")
-             .attr("class", "texts")
-             .selectAll("text")
-             .data(linksData)
-             .enter()
-             .append("text")
-             .attr("font-size", 14)
-             /* .text((d) => {
-                 return d.name
-             }) */
-    /* 对节点和节点上的文字分组 */
-    nodes = svg.selectAll('.circleText')
-             .data(nodesData)
-             .enter()
-             .append("g")
-             /* .attr("transform", (d, i) => {
-                 return `translate(${d.x}, ${d.y})`
-             }) */
-             .call(d3.drag()
-                    .on("start", started)
-                    .on("drag", draged)
-                    .on("end", ended)
-            )
-    /* 绘制节点 */
-    nodes.append("circle")
-         .attr("r", 10)
-         .attr("fill", (d, i) => {
-             return d.color;
-         })
-    /* 文字 */
-    nodes.append("text")
-         .attr("x", -10)
-         .attr("y", -20)
-         .attr("dy", 10)
-         .attr("font-size", 14)
-         .text((d) => {
-             return d.name
-         })    
+// 设置图形中心点
+function setSimulationCenter(simulation, width, height) {
+  simulation.force('center')
+            .x(width / 2)
+            .y(height / 2);
 }
 
-/* 获取节点+线数据 */
-function getData(nodes, linkData, nodeData) {
-    let length = nodes.length;
-    for (let i = 0; i < length; i++) {
-        let item = nodes[i];
-        nodeData.push(item);
-        if (isHasChildren(item)) {
-            let obj = getRelationLink(item, [], []) || {linkData: [], nodeData: []};
-            linkData = linkData.concat(obj.linkData);
-            nodeData = nodeData.concat(obj.nodeData);
-        }
+// 绘制箭头
+function drawArrow(svg, id, color) {
+  svg.append('defs')    // <defs>元素通常为SVG图像保留一组可重复使用的定义，类似<components>
+      .attr('class', `arrow_${id}`)
+      .append('marker')
+      .attr('id', id)  // 供marker-end="url(#end-arrow)"使用
+      .attr('viewBox', '0 -5 10 10')   // 坐标系区域:x y width height
+      .attr('refX', 26)  // 默认0，坐标设置标记内的点用作参考点
+      .attr('refY', 0)   // 默认0，坐标设置标记内的点用作参考点
+      .attr('markerWidth', 6)  //箭头宽
+      .attr('markerHeight', 6) //箭头高
+      .attr('orient', 'auto')  // 绘制方向，可设定为：auto（自动确认方向）和 角度值
+      .append('path')   // 可为其他标签，若绘制圆可为circle
+      .attr('d', 'M0,-5L10,0L0,5')   //绘制三角形
+      .attr('fill', color)
+}
+
+// 重新绘制力导向图
+function simulationRestart(simulation, value = 1) {
+  simulation.alpha(value).restart();   // restart()：重新绘制；alpha(1)：值越大，图表稳定越快。[0, 1]默认0
+}
+
+// 插入defs
+function appendDefs(svg, cls) {
+  let defs = svg.selectAll(`defs.${cls}`);
+  if (!!defs._groups && !defs._groups[0].length) {
+    defs = svg.append('defs')
+              .attr('class', cls);
+  }
+  return defs;
+}
+
+// 绘制图片节点
+function drawImage(defs, id, size, href) {
+  defs.append('pattern')   // pattern：以平铺方式填充，可以直接把图片变成圆（此处绘制的是circle）--https://www.nhooo.com/svg/svg-pattern.html
+      .attr('id', id)  // 供fill="url(#image_${i})"使用
+      .attr('width', size.pWidth)
+      .attr('height', size.pHeight)
+      .append('image')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr("xlink:href", href)
+      .attr("width", size.iWidth) 
+      .attr("height", size.iHeight);
+}
+
+/* =========================================左下角图注开始============================================== */
+// 绘制左下角图注（废弃--由于zoom事件，不能固定在左下角，因此使用了原生dom）
+function drawLeftBottomTips(svg, leftBottomTipsList) {
+  let LBTipsG = svg.append('g')
+                   .attr('class', 'left-bottom-tips-group');
+  let defs = appendDefs(svg, 'left-bottom-tips-image');
+  
+  // 生成左下角图注-图片
+  let LBCircle = LBTipsG.selectAll('circle.left-bottom-tips-circle')
+                        .data(leftBottomTipsList)
+                        .enter()
+                        .append('circle')
+                        .attr('class', d => `left-bottom-tips-circle left-bottom-tips-circle-${d.name}`)
+                        .attr('stroke', '#000')
+                        .attr('r', leftBottomTipsCircleR)
+                        .attr('cx', 20)
+                        .attr('cy', (d, i) => getSVGSize().height - 40 * (leftBottomTipsList.length - i))
+                        .attr('fill', (d, i) => {
+                          drawImage(defs, `left-bottom-tips-image-${i}`, leftBottomImageSize, leftBottomTipsList[i].value);
+                          return `url(#left-bottom-tips-image-${i})` 
+                        });
+  
+  // 生成左下角图注-文本
+  let LBTexts = LBTipsG.selectAll('text.left-bottom-tips-text')
+                      .data(leftBottomTipsList)
+                      .enter()
+                      .append('text')
+                      .attr('class', 'left-bottom-tips-text')
+                      .attr('r', leftBottomTipsCircleR)
+                      .attr('x', 50)
+                      .attr('y', (d, i) => getSVGSize().height - 40 * (leftBottomTipsList.length - i) + 4)
+                      .text(d => d.name);
+                        
+  LBTexts.on('mouseover', function(d, i) {
+            d3.select(this)
+              .transition()
+              .style('font-size', '16px')
+              .style('font-weight', '600')
+              .attr('fill', 'rgb(42, 202, 202)');
+            d3.select(`circle.left-bottom-tips-circle-${d.name}`)
+              .transition()
+              .attr('stroke', 'rgb(42, 202, 202)') 
+         });
+
+  LBTexts.on('mouseout', function(d, i) {
+            let flag = d3.select(this).attr('data-tips-status') === 'grey'
+            d3.select(this)
+              .transition()
+              .style('font-size', '14px')
+              .style('font-weight', 'normal')
+              .attr('fill', flag ? '#ccc' : '#000');
+            d3.select(`circle.left-bottom-tips-circle-${d.name}`)
+              .transition()
+              .attr('stroke', flag ? '#ccc' : '#000');
+       });
+  return { 
+    LBTexts,
+    LBCircle
+  }
+}
+/* =========================================左下角图注结束============================================== */
+
+/* =========================================tooltips开始============================================== */
+let tooltipsDOM = document.getElementById('tooltips');
+// 设置tooltips属性
+function setTooltipsPos(cls) {
+  tooltipsDOM.setAttribute('class', cls);
+  tooltipsDOM.style.left = `${d3.event.clientX + 20}px`;
+  tooltipsDOM.style.top = `${d3.event.clientY + 20}px`;
+}      
+// tooltips--鼠标滑上
+function nodesClickEVT(d, i) {
+  if (tooltipsDOM) {
+    if (d.level !== 0) {
+      console.log(d)
+      setTooltipsPos(tooltipsDOM.getAttribute('class') === 'show' ? 'hide' : 'show');  // 设置tooltips的位置
+      let text = `<div class="family-name">${d.family}</div>
+      <div>
+        <span class="node-label">姓名：</span>
+        <span class="node-value ellipsis">${d.name}</span>
+      </div>
+      <div>
+        <span class="node-label">妻子/丈夫姓名：</span>
+        <span class="node-value ellipsis">${d.relation ? d.relation : '暂无'}</span>
+      </div>
+      <div>
+          <span class="node-label">妻子/丈夫母族：</span>
+          <span class="node-value ellipsis">${d.relationFamily ? d.relationFamily : '暂无'}</span>
+        </div>`;
+      tooltips.innerHTML = text;
     }
-    return {
-        linkData,
-        nodeData
-    }
+  }
+}
+/* =========================================tooltips结束============================================== */
+
+
+/* =========================================高亮显示开始============================================== */
+// 重新设置isFocus值
+function resetDataIsFocus(nodesData, linksData, flag) {
+  nodesData.map(item => item.isFocus = flag);
+  linksData.map(item => item.isFocus = flag);
 }
 
-/* 判断是否有子孙节点 */
-function isHasChildren(node) {
-    return !!node && node.children && !!node.children.length
+// 递归处理数据--通过isFocus=true判断是否“聚焦”(true高亮，false置灰)，修改线、节点、文本的样式即可
+function setDataIsFocus(nodesData, linksData, name) {
+  linksData.map(item => {
+    if (item.family === name) item.isFocus = true;
+  }) 
+  nodesData.map(item => {
+    if (item.belongToFamily === name) item.isFocus = true;
+  })
 }
-
-/* 递归获取关系线+节点（一维数组） */
-function getRelationLink(node, linkData, nodeData) {
-    let length = node.children.length;
-    for (let i = 0; i < length; i++) {
-        let item = node.children[i];
-        nodeData.push(item);
-        linkData.push(Object.assign({
-            sourceName: node.name,
-            targetName: item.name,
-        }, item));
-        if (isHasChildren(item)) {
-            getRelationLink(item, linkData, nodeData)
-        }
-    }
-    return {
-        linkData,
-        nodeData
-    }
-}
-
-/* 设置连接线的source、target（source、target默认为节点数据的下表，也可以是整个节点数据） */
-function getLinksData(data) {
-    let list = [];
-    for (let item of data) {
-        let _sIndex = nodesData.findIndex(it => it.name === item.sourceName),
-            _tIndex = nodesData.findIndex(it => it.name === item.targetName);
-        list.push(Object.assign({
-            source: _sIndex,
-            target: _tIndex
-        }, item))
-    }
-    return list;
-}
-
-function ticked() {
-    links.attr("x1", (d) => {
-        return d.source.x;
-    }).attr("y1", (d) => {
-        return d.source.y;
-    }).attr("x2", (d) => {
-        return d.target.x;
-    }).attr("y2", (d) => {
-        return d.target.x;
-    })
-
-    texts.attr("x", (d) => {
-        return (d.source.x + d.target.x) / 2;
-    }).attr("y", (d) => {
-        return (d.source.y + d.target.y) / 2;
-    })
-
-    nodes.attr("transform", (d) => {
-        console.log(d)
-        return `translate(${d.x}, ${d.y})`
-    })
-    /* nodes.attr('cx', d => {
-        console.log(d)
-        return d.x;
-    })
-    .attr('cy', d => d.y); */
-}
-
-function started(d) {
-    if (!d3.event.active) {
-        forceSimulation.alphaTarget(0.8).restart();
-    }
-    d.fx = d.x;
-    d.fy = d.y;
-}
-
-function draged(d) {
-    d.fx = d3.event.x;
-    d.fy = d3.event.y;
-}
-
-function ended(d) {
-    if (!d3.event.active) {
-        forceSimulation.alphaTarget(0);
-    }
-    d.fx = null;
-    d.fy = null;
-}
-export {
-    initForceSimulation 
-}
+/* =========================================高亮显示结束============================================== */

@@ -201,12 +201,13 @@
           drawData();  // 重新绘制
         })
         
-        d3.selectAll('.back').on('click', () =>{
-          nodesData = JSON.parse(JSON.stringify(nodesDataOrigin));
-          linksData = JSON.parse(JSON.stringify(linksDataOrigin));
-          makeData();
-          drawData();
-        })
+        d3.selectAll('.back')
+          .on('click', () =>{
+            nodesData = JSON.parse(JSON.stringify(nodesDataOrigin));
+            linksData = JSON.parse(JSON.stringify(linksDataOrigin));
+            makeData();
+            drawData();
+          })
 
         // ==========================================拖拽事件==========================================
         function started(d) {

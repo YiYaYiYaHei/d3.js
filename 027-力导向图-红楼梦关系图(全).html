@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>d3.js-力导向图-红楼梦关系图(全)</title>
+    <link rel="stylesheet" type="text/css" href="./css/hongloumeng.css" />
+
+</head>
+<body>
+    <b>这个例子只参考d3部分，数据处理部分写的很乱</b>
+    <a href="https://wiki.jikexueyuan.com/project/d3wiki/scale.html" target="_blank" style="display: block;">文档</a>
+    <a href="https://www.cnblogs.com/zhinian-/p/12575441.html" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://github.com/xswei/d3-force/blob/master/README.md#links" target="_blank">力导向图参数</a>
+    <a href="http://www.qiutianaimeili.com/html/page/2019/10/sqbx59y0slf.html" target="_blank">zoom</a>
+    <a href="https://mm.edrawsoft.cn/template/13390" target="_blank">红楼梦关系图谱</a>
+    
+    <!-- 左下角图注 -->
+    <ul id="left-bottom-tips">
+      <li data-left-bottom-tips-name='贾府'>
+        <img src="./images/贾.jpg" data-left-bottom-tips-name='贾府'/>
+        <span data-left-bottom-tips-name='贾府'>贾府</span>
+      </li>
+      <li data-left-bottom-tips-name='史府'>
+        <img src="./images/史.jpg" data-left-bottom-tips-name='史府'/>
+        <span data-left-bottom-tips-name='史府'>史府</span>
+      </li>
+      <li data-left-bottom-tips-name='王府'>
+        <img src="./images/王.jpg" data-left-bottom-tips-name='王府'/>
+        <span data-left-bottom-tips-name='王府'>王府</span>
+      </li>
+      <li data-left-bottom-tips-name='薛府'>
+        <img src="./images/薛.jpg" data-left-bottom-tips-name='薛府'/>
+        <span data-left-bottom-tips-name='薛府'>薛府</span>
+      </li>
+    </ul>
+
+    <!-- tooltips -->
+    <div id="tooltips" class="hide"></div>
+
+    <script type="text/javascript" src="./js/d3.v5.min.js"></script>
+    <script src="./js/dataConfig.js"></script>
+    <script src="./js/d3Config.js"></script>
+    <script>
+        let width = null,
+            height = null;
+        let circleR = 20,   // 节点圆半径
+            circleFR = 22,   // 家族节点圆半径
+            lineDistance = 100, // 连接线长度   
+            strengthN = -50,   // 节点间的作用力
+            scaleExtent = [0.5, 10],    // zoom缩放比例[最小比例, 最大比例]
+            familyImageList = { // 节点头像地址
+                '贾府': './images/贾.jpg',
+                '史府': './images/史.jpg',
+                '王府': './images/王.jpg',
+                '薛府': './images/薛.jpg',
+            },
+            familyImageNodesSize = {  // 节点头像尺寸
+              pWidth: circleR, // pattern 宽
+              pHeight: circleR, // pattern 高
+              iWidth: circleR * 2,  // image 宽
+              iHeight: circleR * 2  // image 高
+            }; 
+
+        let nodesData = null,  // 节点数据
+            linksData = null,  // 连接线数据
+            simulation = null, // 力导向图对象
+            links = null,  // 连接线
+            nodes = null,  // 节点
+            texts = null,  // 文本
+            svg = d3.select('body')
+                    .append('svg'),
+            linksG = svg.append('g').attr('class', 'links-group'),  // 连接线分组，也可为一个g，按类别分组，单纯为了好看
+            nodesG = svg.append('g').attr('class', 'nodes-group'),  // 节点分组
+            textsG = svg.append('g').attr('class', 'texts-group');  // 文本分组
+            
+        initSimulation();
+        
+        // 浏览器resize事件
+        window.onresize = () => {
+          setSvgSize();  // 设置width、height
+          resetSvgSize(svg, width, height);  // 重置svg宽高
+          setSimulationCenter(simulation, width, height);  // 设置图形中心点
+          simulationRestart(simulation);  // 执行api重绘事件
+        }
+        
+        // 设置width、height
+        function setSvgSize() {
+          width = getSVGSize().width;
+          height = getSVGSize().height;
+        }
+        
+        function getOriginData(leftBottomTipsList) {
+          let data = getShowData(leftBottomTipsList) || {nodesData: [], linksData: []};
+          nodesData = data.nodesData;
+          linksData = data.linksData;
+        }
+
+        // 初始化操作
+        function initSimulation() {
+          setSvgSize();
+          resetSvgSize(svg, width, height);
+          
+          getOriginData();
+          
+          // 1、新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links
+          simulation = d3.forceSimulation()
+                           .force('link',d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器
+                           .force('charge', d3.forceManyBody().strength(strengthN))  // 设置节点间的作用力，当strength为正的时候可以模拟重力，当为负的时候可以模拟电荷力（就是那种互斥的感觉）
+                           .force('collision', d3.forceCollide(circleR))  // 设置节点碰撞半径
+                           .force('center', d3.forceCenter());
+          
+          // 数据生成器
+          makeSimulationData();
+          
+          // 4、设置图形中心点
+          setSimulationCenter(simulation, width, height);
+
+          // svg绑定缩放事件
+          svgBindZoom();
+          
+          // 绘制力导向图
+          drawSimulation();
+
+          // 9、绘制箭头
+          drawArrow(svg, 'end-arrow', '#000');
+          drawArrow(svg, 'spause-end-arrow', 'red');
+          drawArrow(svg, 'grey-end-arrow', '#ccc');
+
+          // 左下角图注绑定事件
+          leftBottomTipsBindEvt();
+        }
+        
+        // 数据生成器
+        function makeSimulationData() {
+          // 2、生成节点数据
+          simulation.nodes(nodesData)
+                    .on('tick', tickEvt);
+          // 3、生成边数据
+          simulation.force('link')  // 生成连接线数据--转换为d3所需要的link数据
+                    .links(linksData)
+                    .distance(lineDistance);  // 设置连接线的长度
+          
+          console.log(nodesData, linksData)
+        }
+
+        // 8、设置缩放、平移---http://www.qiutianaimeili.com/html/page/2019/10/sqbx59y0slf.html
+        function zoomed() {
+          let transform = d3.event.transform;
+          svg.selectAll('g')
+              .attr( "transform", transform);
+        }
+        function svgBindZoom() {
+          let zoom = d3.zoom()
+                       .scaleExtent(scaleExtent)   // 放大倍数scaleExtent([最小倍数, 最大倍数])
+                       .on('zoom', zoomed);
+
+          /* 不建议把zoom绑定在g上：1、会出现抖动情况；2、平移无法实现；3、缩放：只能放大；4、大部分不会触发zoom事件
+             把zoom放到整个svg上，而不是特定的元素上，才能保证在整个图形元素区域都起作用 
+          */
+          svg.call(zoom);   
+        }
+        
+        // 绘制力导向图
+        function drawSimulation() {
+          drawLinks();
+          drawNodes();
+          drawTexts();
+        }
+
+        // 5、绘制连接线
+        function drawLinks() {
+          linksG.selectAll('line.line').remove();
+          links = linksG.selectAll('line.line')
+                   .data(linksData)
+                   .enter()
+                   .append('line')
+                   .attr('class', d => d.relationType === '夫妻' ? 'line line-animation' : 'line')
+                   .attr('stroke', d => d.relationType === '夫妻' ? 'red' : '#000')
+                   .attr('marker-end', d => d.relationType === '夫妻' ? 'url(#spause-end-arrow)' : 'url(#end-arrow)');   // 可为marker-start、marker-mid、marker-end，值为<marker>的id名
+        
+          // 线动画
+          linksG.selectAll('line.line-animation')
+                .append('animate')
+                .attr('attributeName', 'stroke-dashoffset')
+                .attr('from', '0')
+                .attr('to', '-100')
+                .attr('begin', '0s')
+                .attr('dur', '3s')
+                .attr('repeatCount', 'indefinite');
+        }
+
+        // 6、绘制node + 图片节点
+        function drawNodes() {
+          let defs = appendDefs(svg, 'family-image-nodes');
+          
+          nodesG.selectAll('circle.circle').remove();
+          nodes = nodesG.selectAll('circle.circle')
+                   .data(nodesData)
+                   .enter()
+                   .append('circle')
+                   .attr('class', 'circle')
+                   .attr('r', d => d.level === 0 ? circleFR : circleR)
+                   .attr('stroke', d => d.level === 0 ? '#000' : '')  // 设置圆边框，两种办法：1、使用stroke；2、在圆1之前再插入一个圆2（只要保证圆2的位置在圆1之前就可以），圆2半径比圆1大，也可以实现边框效果
+                   .attr('fill', (d, i) => {
+                      if (d.level !== 0) return d.color;
+
+                      drawImage(defs, `family-image-nodes-${d.name}`, familyImageNodesSize, familyImageList[d.name]);
+                      return `url(#family-image-nodes-${d.name})` 
+                   })
+                   .call(d3.drag()     // 绑定拖拽事件
+                           .on('start', started)
+                           .on('drag', drag)
+                           .on('end', end)
+                   );
+          
+          // 添加tooltips
+          nodes.on('click', nodesClickEVT);
+
+          // 添加高亮显示
+          nodes.on('mouseover', nodesMouseoverEVT);
+          nodes.on('mouseout', nodesMouseoutEVT);
+        }
+        
+        // 7、绘制文本
+        function drawTexts() {
+          textsG.selectAll('text.text').remove();
+          texts = textsG.selectAll('text.text')
+                   .data(nodesData)
+                   .enter()
+                   .append('text')
+                   .attr('class', 'text')
+                   .attr('fill', '#000')
+                   .text(d => d.name);
+        }
+        
+        /* 左下角图注点击事件 
+        *  有两种实现方式
+        * 1、使用原生dom：添加自定义属性绑定唯一性标识id，通过获取自定义属性，找到对应数据进行隐藏
+        * 2、使用svg元素：实现方法见drawLeftBottomTipsEvt(); --由于zoom事件，导致收缩svg时，不能固定到左下角(g无x,y属性，无法固定在某一位置)，因此建议使用原生dom
+        */
+        function leftBottomTipsBindEvt() {
+          let dom = document.getElementById('left-bottom-tips');
+          dom.onclick = ($event) => {
+            let name = $event.target.getAttribute('data-left-bottom-tips-name');
+            // 获取点击的是哪个树节点，并重新绘制力导向图
+            if (!!name) {
+              getOriginData(name);  
+              makeSimulationData();
+              drawSimulation();
+              simulationRestart(simulation);
+            }
+            
+            // 设置点击时的样式：left-bottom-tips-li-grey置灰class名，表示没有绘制该类节点
+            let aLi = document.querySelectorAll('#left-bottom-tips>li');
+            Array.prototype.map.call(aLi, (item, index, list) => {
+              let _cls = item.getAttribute('class') || '',
+                  liName = item.getAttribute('data-left-bottom-tips-name'),
+                  obj = NODES.find(it => it.name === liName),
+                  addCls = obj && !obj.isShow ? `${_cls} left-bottom-tips-li-grey` : _cls.replace(/left-bottom-tips-li-grey/g, '');
+
+              item.setAttribute('class', addCls);
+            })
+          }
+        }
+
+        function tickEvt() {
+           if (!links) return;
+            // 计算边位置
+            links.attr('x1', d => d.source.x)
+                 .attr('y1', d => d.source.y)
+                 .attr('x2', d => d.target.x)
+                 .attr('y2', d => d.target.y);
+            // 计算node位置
+            nodes.attr('cx', d => d.x)
+                 .attr('cy', d => d.y);
+            // 计算文本的位置
+            texts.attr('x', d => d.x + circleR + 5)
+                 .attr('y', d => d.y);
+        }
+        function started(d) {
+            // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
+            if (!d3.event.active) {
+                simulation.alphaTarget(0.8).restart();  // 衰减系数，值越大，图表稳定越快。[0, 1]默认0
+            }
+            // fx fy 表示下次节点被固定的位置
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+        }
+
+        function drag(d) {
+            // fx fy 表示下次节点被固定的位置
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+        }
+
+        function end(d) {
+            // d3.event.active判断拖拽手势序列中的start事件和end事件，在start事件和end事件中：为0; 在drag事件中：为1
+            if (!d3.event.active) {
+                simulation.alphaTarget(0);  // 衰减系数，值越大，图表稳定越快。[0, 1]默认0
+            }
+            // fx fy 表示下次节点被固定的位置
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        // 使用svg绘制左下角图注
+        function drawLeftBottomTipsEvt() {
+          let list = objTransArray(familyImageList);
+          LBTips = drawLeftBottomTips(svg, list);
+          LBTips.LBTexts.on('click', function(d, i) { 
+            // 判断文字状态，使用自定义属性-grey：不绘制 light：绘制
+            let flag = d3.select(this).attr('data-tips-status') === 'grey';
+            d3.select(this)
+              .attr('data-tips-status', flag ? 'light' : 'grey')
+              .attr('fill', flag ? '#000' : '#ccc');
+
+            getOriginData(d.name);
+            makeSimulationData();
+            drawSimulation();
+            simulationRestart(simulation);
+          });
+        }
+
+        /* =========================================高亮显示开始============================================== */
+        // 鼠标滑上
+        function nodesMouseoverEVT(d, i) {
+          if (tooltipsDOM) {
+            resetDataIsFocus(nodesData, linksData, false);  // 重置设置isFocus值
+            setDataIsFocus(nodesData, linksData, d.belongToFamily);  // 递归修改isFocus值
+            setLightColor();  // 绘制高亮样式
+          }
+        }
+
+        // 鼠标滑离
+        function nodesMouseoutEVT(d, i) {
+          if (tooltipsDOM) {
+            tooltipsDOM.setAttribute('class', 'hide');
+            resetDataIsFocus(nodesData, linksData, true);  // 重置设置isFocus值
+            setLightColor();  // 绘制高亮样式
+          }
+        }
+
+        // 重新绘制
+        function setLightColor() {
+          links = links.attr('stroke', d => d.isFocus ? d.relationType === '夫妻' ? 'red' : '#000' : '#ccc')
+                       .attr('marker-end', d => d.isFocus ? d.relationType === '夫妻' ? 'url(#spause-end-arrow)' : 'url(#end-arrow)' : 'url(#grey-end-arrow)') // 修改箭头颜色
+                       .merge(links);  //merge()合并数组，类似concat
+          nodes = nodes.attr('stroke', (d, i) => d.isFocus ? '#000' : '#ccc')
+                       .attr('fill', (d, i) => {
+                          if (d.level !== 0) return d.isFocus ? d.color : '#ccc';
+
+                          drawImage(svg.select('family-image-nodes'), `family-image-nodes-${d.name}`, familyImageNodesSize, familyImageList[d.name]);
+                          return `url(#family-image-nodes-${d.name})` 
+                        })
+                       .merge(nodes);
+          texts = texts.attr('fill', (d, i) => d.isFocus ? '#000' : '#ccc')
+                       .merge(texts);
+        }
+        /* =========================================高亮显示结束============================================== */
+    </script>
+</body>
+</html>
