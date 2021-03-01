@@ -50,6 +50,8 @@
             { name: "天津", color: 'rgb(148, 103, 189)' },
             { name: "淄博", color: '#67C23A' },
         ];
+        let nodesDataOrigin = JSON.parse(JSON.stringify(nodesData));
+
         /*  连接线数据
         *   1、source、target默认为nodesData的索引，
         *   2、也可以是转换后的节点数据，
@@ -64,6 +66,8 @@
             { source: "广州" , target: "天津" },
             { source: "青岛" , target: "淄博" }
         ];
+        let linksDataOrigin = JSON.parse(JSON.stringify(linksData));
+
         // ==========================================新建力导向图--https://github.com/xswei/d3-force/blob/master/README.md#links==========================================
         let simulation = d3.forceSimulation()
                            .force('link', d3.forceLink().id(d => d.name))  // d3.forceLink()：力生成器--默认索引;  d3.forceLink().id()：修改以谁为id生成
@@ -72,19 +76,25 @@
                            .force('center', d3.forceCenter());
 
         // ==========================================生成节点数据==========================================
-        simulation.nodes(nodesData)  // 生成节点数据--转换为d3所需要的nodes数据
-                  .on('tick', tickEvt);   // 动画的计算进入下一步（每一帧都会执行this.tick）
+        makeData();
+        // 转换成d3所需数据
+        function makeData() {
+          // ==========================================生成节点数据==========================================
+          simulation.nodes(nodesData)  // 生成节点数据--转换为d3所需要的nodes数据
+                    .on('tick', tickEvt);   // 动画的计算进入下一步（每一帧都会执行this.tick）
 
-        // ==========================================生成边数据==========================================
-        simulation.force('link')  // 生成连接线数据--转换为d3所需要的link数据
-                  .links(linksData)
-                  .distance(150);  // 设置连接线的长度
+          // ==========================================生成边数据==========================================
+          simulation.force('link')  // 生成连接线数据--转换为d3所需要的link数据
+                    .links(linksData)
+                    .distance(150);  // 设置连接线的长度
+          
+          console.log(nodesData, linksData);
+        }
 
         // ==========================================设置图形中心点==========================================
         simulation.force('center')
                   .x(width / 2)
                   .y(height / 2);
-        console.log(nodesData, linksData);
 
         let g = svg.append('g');
         
@@ -107,21 +117,32 @@
         let nodes = null;
         let texts = null;
         drawData();
-        function drawData() {
+        function drawData(type) {
+          if (type === 'remove') mergeData();  // 删除时，需要使用merge删除多余元素；类似数组合并concat
+
           drawLine();
           drawNodes();
           drawTexts();
           simulation.alpha(1).restart();   // restart()：重新绘制；alpha(1)：值越大，图表稳定越快。[0, 1]默认0
         }
+
+        function mergeData() {
+          if (!!nodes) nodes.merge(nodes.remove());  // 等同nodes.remove();
+          if (!!links) links.merge(links.remove());
+          if (!!texts) texts.merge(texts.remove());
+        }
+
         // ==========================================绘制边--先绘制边再绘制节点，保证边在节点下方==========================================
         function drawLine() {
-          // g.selectAll('line.line').data(linksData, d => `${d.source.name}_${d.target.name}`).exit().remove();
           links = g.selectAll('line.line')
-                   .data(linksData, d => `${d.source.name}_${d.target.name}`)
+                   .data(linksData)
+                   .exit()
+                   .remove()
+                   .data(linksData, d => `line_${d.source.name}_${d.target.name}`)  // .data(linksData)：默认以索引标识，也可使用自定义的标志符.data(linksData, (d) => return d.name)
                    .enter()
                    .append('line')
                    .attr('class', 'line')
-                   .attr('id', d => `${d.source.name}_${d.target.name}` )
+                   .attr('id', d => `line_${d.source.name}_${d.target.name}` )
                    .attr('marker-end', 'url(#end-arrow)')// 可为marker-start、marker-mid、marker-end，值为<marker>的id名
           // 线动画
           links.append('animate')
@@ -135,9 +156,11 @@
         
         // ==========================================绘制节点==========================================
         function drawNodes() {
-          // g.selectAll('circle.nodes').data(nodesData, d => `nodes_${d.name}`).exit().remove();
           nodes = g.selectAll('circle.nodes')
-                   .data(nodesData, d => `nodes_${d.name}`)
+                   .data(nodesData)
+                   .exit()
+                   .remove()
+                   .data(nodesData)
                    .enter()
                    .append('circle')
                    .attr('class', 'nodes')
@@ -147,16 +170,17 @@
                    .call(d3.drag()     // 绑定拖拽事件
                           .on('start', started)
                           .on('drag', drag)
-                          .on('end', end)
-                   );
-          console.log(nodes)
+                          .on('end', end))
+                 
         }
 
         // ==========================================绘制文本==========================================
         function drawTexts() {
-          // g.selectAll('text.text').data(nodesData, d => `texts_${d.name}`).exit().remove();
           texts = g.selectAll('text.text')
-                   .data(nodesData, d => `texts_${d.name}`)
+                   .data(nodesData)
+                   .exit()
+                   .remove()
+                   .data(nodesData, d => `texts_${d.name}`) // .data(linksData)：默认以索引标识，也可使用自定义的标志符.data(linksData, (d) => return d.name)
                    .enter()
                    .append('text')
                    .attr('class', 'text')
@@ -184,24 +208,29 @@
 
         // ==========================================删除节点==========================================
         /** 删除有两种方法：
-        * 1、使用exit（）---但是我也不知道为啥删除后，节点不能拖拽了（主要是获取nodes为empty，暂时没找到原因也就没实现）
+        * 1、使用exit(): ① merge有顺序要求，如果放在exit后面，会导致节点不能拖动。② 连接线要操作原始数据，然后重新生成力导向图所需数据；若直接操作力导向图的数据会导致连接线的位置使用的还是上一次的位置
+        * nodes.merge(nodes.remove()); nodes.data(nodesData).exit().remove().data(nodesData).enter();
         * 2、直接获取节点删除dom 
         */
         d3.selectAll('.delete').on('click', () => {
           let nodeData = nodesData.pop();
           let _linksData = [];
-          linksData.map(it => {
-            if (it.target.name !== nodeData.name) {
+          linksDataOrigin.map(it => {
+            let flag = !!nodesData.find(ite => ite.name === it.target) 
+                       && !!nodesData.find(ite => ite.name === it.source)
+            if (flag && it.target !== nodeData.name) {
               _linksData.push(it)
-            } else {
-              d3.selectAll(`#${it.source.name}_${it.target.name}`).remove()
             }
           } );
           linksData = JSON.parse(JSON.stringify(_linksData));
           
-          d3.selectAll(`#nodes_${nodeData.name}`).remove();
-          d3.selectAll(`#texts_${nodeData.name}`).remove()
-          // drawData();
+          // 第一种方法
+          makeData();  // 重新生成线所需数据
+          drawData('remove');
+          
+          // 第二种方法
+          /* d3.selectAll(`#nodes_${nodeData.name}`).remove();
+          d3.selectAll(`#texts_${nodeData.name}`).remove() */
         })
 
         // ==========================================拖拽事件==========================================
