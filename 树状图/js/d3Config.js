@@ -1,6 +1,29 @@
 let widthP = 0.9,
     heightP = 0.85;
 
+let rectW = 100,  // 矩形宽
+    rectH = 50,   // 矩形高
+    rectBW = 200,  // “红楼梦任务关系图”矩形宽
+    rectBH = 100,  // “红楼梦任务关系图”矩形高
+    initScale = 0.5,  // 设置初始缩放比例
+    translateX = getSVGSize().width * 0.2;  // 设置g.container的x位置
+
+let svg = d3.select('body').append('svg'),
+    hierarchyData = null,  // 层级布局
+    tree = null,   // 树形图
+    treeData = null,
+    nodesData = null,
+    nodesDataOrigin = null,
+    linksData = null,
+    linkHorizontal = null,  // 创建贝塞尔曲线生成器
+    texts = null,
+    nodes = null,
+    links = null,
+    g = svg.append('g').attr('class', 'container'),
+    linksG = g.append('g').attr('class', 'links-group'),  // linksG、nodesG、textsG三个有顺序要求，线>节点>文字（文字被覆盖是绘制的顺序问题）
+    nodesG = g.append('g').attr('class', 'nodes-group'),
+    textsG = g.append('g').attr('class', 'texts-group');
+
 // 自执行函数--引入其他js文件   https://www.jb51.net/article/195401.htm
 (function(){
   document.write("<script language=javascript src='./js/d3.v5.min.js'></script>");
@@ -36,18 +59,47 @@ function initTree() {
   // 生成树状图数据--带有depth、data、height、parent、children等属性
   treeData = tree(hierarchyData);
   console.log("treeData: ", treeData);
-
-  //获取边和节点数据--带有depth、data、height、parent、children等属性
-  nodesData = treeData.descendants();   // 从当前节点开始返回其后代节点数组.
-  linksData = treeData.links();   // 返回当前节点所在子树的所有边.
-  console.log("边和节点: ", nodesData, linksData);
+  
+  // 生成nodes、links
+  makeTreeData();
     
   //创建贝塞尔曲线生成器
   linkHorizontal = getLinkHorizontal();
   
+  // 绘制树
+  drawTree();
+}
+
+function makeTreeData(type) {
+  //获取边和节点数据--带有depth、data、height、parent、children等属性
+
+  /* 从当前节点开始返回其后代节点数组
+  *  treeData.descendants()等同v3版本的tree.nodes() 
+  *  reverse():删除没有children的节点
+  */
+  nodesData = treeData.descendants().reverse();   
+  if (type !== 'remove') {
+    nodesData.map(it => it._children = it.children);  // _children是children的副本,记录展开时的数据(只在初始化时调用)
+    nodesDataOrigin = [].concat(nodesData);  // 供一键展开使用(点击"收起"后,此时nodesData的长度减少了)
+  }
+
+  linksData = treeData.links(nodesData);   // 返回当前节点所在子树的所有边
+  console.log("边和节点: ", nodesData, linksData);
+}
+
+// 绘制
+function drawTree(type) {
+  if (type === 'remove') removeTree();
+  
   links = drawLinks();  // 绘制线
   nodes = drawNodes();  // 绘制矩形节点
   texts = drawTexts();  // 绘制文本
+}
+
+function removeTree() {
+  if (!!links) links.remove();
+  if (!!nodes) nodes.remove();
+  if (!!texts) texts.remove();
 }
 
 // 获取svg宽高
@@ -90,6 +142,9 @@ function getLinkHorizontal() {
 function drawLinks() {
   return  linksG.selectAll('path.path')
                 .data(linksData)
+                .exit()
+                .remove()
+                .data(linksData)
                 .enter()
                 .append('path')
                 .attr('class', 'path')
@@ -106,6 +161,9 @@ function drawLinks() {
 // 绘制矩形节点
 function drawNodes() {
   return  nodesG.selectAll('rect.rect')
+                .data(nodesData)
+                .exit()
+                .remove()
                 .data(nodesData)
                 .enter()
                 .append('rect')
@@ -130,6 +188,9 @@ function drawTexts() {
                 .attr('style', 'dominant-baseline: middle; text-anchor: middle;')   // 文本居中对齐
                 .text(d => d.data.name) */
   return  textsG.selectAll('foreignObject.text')
+                .data(nodesData)
+                .exit()
+                .remove()
                 .data(nodesData)
                 .enter()
                 .append('foreignObject')

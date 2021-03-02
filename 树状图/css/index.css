@@ -2,7 +2,23 @@
   margin: 0;
   padding: 0;
 }
-
+@font-face {
+  font-family: 'iconfont';
+  src: url('./icon/iconfont.eot');
+  src: url('./icon/iconfont.eot?#iefix') format('embedded-opentype'),
+      url('./icon/iconfont.woff2') format('woff2'),
+      url('./icon/iconfont.woff') format('woff'),
+      url('./icon/iconfont.ttf') format('truetype'),
+      url('./icon/iconfont.svg#iconfont') format('svg');
+}
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 18px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 600;
+}
 body {
   padding: 8px;
   position: relative;
@@ -24,6 +40,38 @@ svg {
 .hide {
   display: none;
 }
+
+/* 按钮样式---start--- */
+.btn-box {
+  position: absolute;
+  right: 12%;
+  top: 92%;
+  height: 50px;
+  line-height: 32px;
+}
+.btn-box > button {
+  padding: 10px;
+  height: 36px;
+  line-height: 1;
+  border: 1px solid #b3d8ff;
+  color: #409eff;
+  border-radius: 5px;
+  background: #ecf5ff;
+}
+.btn-box > button:focus {
+  outline:none;   /* 去除点击时的黑边框 */
+}
+.btn-box > button:link,
+.btn-box > button:visited,
+.btn-box > button:hover,
+.btn-box > button:active {
+  background: #409eff;
+  border: 1px solid #409eff;
+  color: #fff;
+}
+/* 按钮样式---end--- */
+
+/* 文本样式---start--- */
 foreignObject.text {
   position: relative;
   font-size: 14px;
@@ -40,6 +88,8 @@ foreignObject.text > .node-text {
   color: #000;
   text-align: center;
 }
+/* 文本样式结束---end--- */
+
 .big-rect {
   stroke: #000;
   stroke-width: 3;

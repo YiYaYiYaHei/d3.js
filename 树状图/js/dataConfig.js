@@ -2,7 +2,7 @@
  * name: 家族/姓名
  * level：树层级（0-*）
  * color：节点颜色  贾-#67C23A; 史：#F56C6C; 王：#2acaca; 薛: #f69e6e
- * isShow：是否显示
+ * isExpand：是否展开  true-展开 false-收起
  * children：子孙节点
  * relation：妻子/丈夫姓名
  * relationColor：妻子/丈夫的节点颜色
@@ -10,8 +10,9 @@
  */
 const NODES_ORIGIN = {
   name: '红楼梦任务关系图',
+  isExpand: true,
   children: [
-    {name: '贾府', level: 0, color: '#67C23A', isShow: true, children: [
+    {name: '贾府', level: 0, color: '#67C23A', children: [
         {name: '贾演', level: 1, color: '#67C23A', children: [
             {name: '贾代化（宁国府）', level: 2, color: '#67C23A', children: [
                 {name: '贾敬', level: 3, color: '#67C23A', children: [
@@ -45,7 +46,7 @@ const NODES_ORIGIN = {
             ]}
         ]}
     ]},
-    {name: '史府', level: 0, color: '#F56C6C', isShow: true, children: [
+    {name: '史府', level: 0, color: '#F56C6C', children: [
         {name: '史侯', level: 1, color: '#F56C6C', children: [
             {name: '史湘云祖父', level: 2, color: '#F56C6C', children: [
                 {name: '史湘云父母', level: 3, color: '#F56C6C', children: [
@@ -58,7 +59,7 @@ const NODES_ORIGIN = {
             {name: '贾母', level: 2, color: '#F56C6C'}
         ]}
     ]},
-    {name: '王府', level: 0, color: '#2acaca', isShow: true, children: [
+    {name: '王府', level: 0, color: '#2acaca', children: [
         {name: '王夫人之父身份不详', level: 1, color: '#2acaca', children: [
             {name: '王夫人之父', level: 2, color: '#2acaca', children: [
                 {name: '王熙凤父母', level: 3, color: '#2acaca', children: [
@@ -74,7 +75,7 @@ const NODES_ORIGIN = {
             ]}
         ]}
     ]},
-    {name: '薛府', level: 0, color: '#f69e6e', isShow: true, children: [
+    {name: '薛府', level: 0, color: '#f69e6e', children: [
         {name: '薛身份不祥', level: 1, color: '#f69e6e', children: [
             {name: '薛蟠之父身份不详', level: 2, color: '#f69e6e', children: [
                 {name: '薛蟠之父', level: 3, relation: '薛姨妈', color: '#f69e6e', relationFamily: '王夫人之父', relationColor: '#2acaca', children: [
@@ -93,4 +94,27 @@ const NODES_ORIGIN = {
     ]}
   ]
 }
-const NODES = [];
+
+// 组装数据
+function assemableData(data = NODES_ORIGIN.children) {
+  let length = data.length;
+  for (let i = 0; i < length; i++) {
+    let item = data[i];
+    item.isExpand = true;
+    if(hasChildrenData(item)) assemableData(item.children);
+  }
+}
+
+// 判断是否有子节点
+function hasChildrenData(item) {
+  return !!item.children && !!item.children.length
+}
+
+// 根据name查找节点
+/* function findName(name, data) {
+  let length = data.length;
+  for (let i = 0; i < length; i++) {
+    let item = data[i];
+    if (item.name)
+  }
+} */

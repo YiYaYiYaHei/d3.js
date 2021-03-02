@@ -9,12 +9,17 @@
 </head>
 <body>
     <a href="https://blog.csdn.net/selina_chan/article/details/51260516" target="_blank" style="display: block;">示例</a>
-    <a href="https://github.com/xswei/d3js_doc/blob/master/API_Reference/API.md" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://github.com/xswei/d3js_doc/blob/master/API_Reference/API.md" target="_blank">文档V5</a>
+    <a href="https://mm.edrawsoft.cn/template/13390" target="_blank">红楼梦关系图谱</a>
+
 
     <script type="text/javascript" src="./js/d3.v5.min.js"></script>
     <script src="./js/dataConfig.js"></script>
-    <script src="./js/d3Config.js"></script>
+    
     <script>
+      let widthP = 0.9,
+          heightP = 0.85;
+
       let rectW = 100,  // 矩形宽
           rectH = 50,   // 矩形高
           rectBW = 200,  // “红楼梦任务关系图”矩形宽
@@ -141,6 +146,36 @@
                       .attr('class', 'node-text')
                       .text(d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
                       
+      }
+
+      // 获取svg宽高
+      function getSVGSize() {
+        return {
+          width: document.documentElement.clientWidth * widthP,
+          height: document.documentElement.clientHeight * heightP
+        }
+      }
+
+      // 重新设置svg宽高
+      function setSvgSize(svg) {
+        svg.attr('width', getSVGSize().width)
+          .attr('height', getSVGSize().height);
+      }
+      
+      // svg绑定zoom事件
+      function svgBindZoom(svg, initScale) {
+        let zoom = d3.zoom()
+                    .scaleExtent([0.5, 10])   // 放大倍数scaleExtent([最小倍数, 最大倍数])
+                    .on('zoom', zoomed);
+
+        zoom.scaleTo(svg, initScale);  // 设置初始缩放比例--缩放正确应用于svg元素,但是当你调用zoom.scaleTo(svg,2)时,你正在缩放组元素,而不是svg元素.
+        
+        function zoomed() {
+            let transform = d3.event.transform;
+            g.attr( "transform", transform);
+        }
+
+        svg.call(zoom);   // 把zoom放到整个svg上，而不是特定的元素上，才能保证在整个图形元素区域都起作用
       }
             
     </script>

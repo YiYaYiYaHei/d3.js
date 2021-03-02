@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>d3.js-树状图resize</title>
+  <link rel="stylesheet" type="text/css" href="./css/index.css"/>
+</head>
+<body>
+    <a href="https://blog.csdn.net/selina_chan/article/details/51260516" target="_blank" style="display: block;">示例</a>
+    <a href="https://github.com/xswei/d3js_doc/blob/master/API_Reference/API.md" target="_blank">文档V5</a>
+    <a href="https://mm.edrawsoft.cn/template/13390" target="_blank">红楼梦关系图谱</a>
+
+    <script type="text/javascript" src="./js/d3.v5.min.js"></script>
+    <script src="./js/dataConfig.js"></script>
+    <script src="./js/d3Config.js"></script>
+    <script>
+      initTree(); 
+      
+      // ===============================resize============================================
+      // 官网未提供树形图的restart方法，因此只能手动去修改位置
+      window.onresize = () => {
+        setSvgSize(svg);
+        
+        // 设置初始缩放比列
+        translateX = getSVGSize().width * 0.2;  // 设置g.container的x位置
+        g.attr("transform", `translate(${translateX}, ${getSVGSize().height / 2}) scale(${initScale})`);
+      }
+    </script>
+</body>
+</html>

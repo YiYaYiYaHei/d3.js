@@ -9,43 +9,89 @@
 </head>
 <body>
     <a href="https://blog.csdn.net/selina_chan/article/details/51260516" target="_blank" style="display: block;">示例</a>
-    <a href="https://github.com/xswei/d3js_doc/blob/master/API_Reference/API.md" target="_blank" style="display: block;">文档V5</a>
+    <a href="https://github.com/xswei/d3js_doc/blob/master/API_Reference/API.md" target="_blank">文档V5</a>
+    <a href="https://mm.edrawsoft.cn/template/13390" target="_blank">红楼梦关系图谱</a>
+    
+    <div class="btn-box">
+      <button onclick="expandAll()">一键展开</button>
+      <button onclick="collopseAll()">一键收起</button>
+    </div>
 
     <script type="text/javascript" src="./js/d3.v5.min.js"></script>
     <script src="./js/dataConfig.js"></script>
     <script src="./js/d3Config.js"></script>
     <script>
-      let rectW = 100,  // 矩形宽
-          rectH = 50,   // 矩形高
-          rectBW = 200,  // “红楼梦任务关系图”矩形宽
-          rectBH = 100,  // “红楼梦任务关系图”矩形高
-          initScale = 0.5,  // 设置初始缩放比例
-          translateX = getSVGSize().width * 0.2;  // 设置g.container的x位置
+      let textsIcon = null,
+          textIconG = g.append('g').attr('class', 'texts-icon-group');
 
-      let svg = d3.select('body').append('svg'),
-          hierarchyData = null,  // 层级布局
-          tree = null,   // 树形图
-          treeData = null,
-          nodesData = null,
-          linksData = null,
-          linkHorizontal = null,  // 创建贝塞尔曲线生成器
-          texts = null,
-          nodes = null,
-          links = null,
-          g = svg.append('g').attr('class', 'container'),
-          linksG = g.append('g').attr('class', 'links-group'),  // linksG、nodesG、textsG三个有顺序要求，线>节点>文字（文字被覆盖是绘制的顺序问题）
-          nodesG = g.append('g').attr('class', 'nodes-group'),
-          textsG = g.append('g').attr('class', 'texts-group');
-          
-      initTree(); 
+      initPage();
+
+      function initPage() {
+        assemableData();
+        initTree();
+        drawIcon();
+      }
+
+      function drawIcon() {
+        textsIcon = textIconG.selectAll('text.iconfont')
+                             .data(nodesData)
+                             .exit()
+                             .remove()
+                             .data(nodesData)
+                             .enter()
+                             .append('text')
+                             .attr('class', 'iconfont')
+                             .attr('data-text-icon-name', d => d.data.name)
+                             .attr('x', d => d.data.name === '红楼梦任务关系图' ? d.y : d.y + rectW / 2)
+                             .attr('y', d => d.data.name === '红楼梦任务关系图' ? d.x + 8 : d.x + 8)
+                             .attr('fill', d => !!d._children && d._children.length ? d.data.isExpand ? '#67C23A' : '#F56C6C' : '')
+                             .html(d => !!d._children && d._children.length ? d.data.isExpand ? '&#xe640;' : '&#xe62d;' : '')
       
-      // 官网未提供树形图的restart方法，因此只能手动去修改位置
-      window.onresize = () => {
-        setSvgSize(svg);
-        
-        // 设置初始缩放比列
-        translateX = getSVGSize().width * 0.2;  // 设置g.container的x位置
-        g.attr("transform", `translate(${translateX}, ${getSVGSize().height / 2}) scale(${initScale})`);
+        textsIcon.on('click', clickEvt);
+      }
+      
+      function clickEvt() {
+        let dom = d3.event.target;
+        let name = dom.getAttribute('data-text-icon-name');
+        name && resetTree(name);
+      }
+      
+      // 根据name重置操作
+      function resetTree(name) {
+        nodesData.map(it => {
+          if (it.data.name === name) it.data.isExpand = !it.data.isExpand;  // 设置isExpand(是否展开)
+          it.children = it.data.isExpand ? it._children : null;  // _children是children的副本,记录展开时的数据
+        });
+
+        restartTree();
+      }
+      
+      function restartTree() {
+        makeTreeData('remove');  // 重新生成数据--此时,不能对_children重新赋值,防止初始化时的展开数据丢失
+        drawTree('remove');  // 绘制
+
+        if (!!textsIcon) textsIcon.remove();
+        drawIcon();  // 重新绘制icon
+      }
+
+      // 一键展开
+      function expandAll() {
+        nodesDataOrigin.map(it => {
+          it.data.isExpand = true;  // 设置isExpand(是否展开) true-展开 false-收起
+          it.children = it._children;  // _children是children的副本,记录展开时的数据
+        });
+        nodesData = [].concat(nodesDataOrigin);  // 不要这句也可以，我也不知道为啥深拷贝了之后，修改nodesDataOrigin，nodesData也会变，可能和treeData.descendants()有关
+        restartTree();
+      }
+
+      // 一键收起
+      function collopseAll() {
+        nodesDataOrigin.map(it => {
+          it.data.isExpand = it.depth == 0;  // 设置isExpand(是否展开) true-展开 false-收起
+          it.children = it.data.isExpand ? it._children : null;  // _children是children的副本,记录展开时的数据
+        });
+        nodesData = [].concat(nodesDataOrigin);// 不要这句也可以，我也不知道为啥深拷贝了之后，修改nodesDataOrigin，nodesData也会变，可能和treeData.descendants()有关
+        restartTree();
       }
     </script>
 </body>
