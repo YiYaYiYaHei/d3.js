@@ -128,7 +128,9 @@ function svgBindZoom(svg, initScale) {
       g.attr( "transform", transform);
   }
 
-  svg.call(zoom);   // 把zoom放到整个svg上，而不是特定的元素上，才能保证在整个图形元素区域都起作用
+  svg.call(zoom)   // 把zoom放到整个svg上，而不是特定的元素上，才能保证在整个图形元素区域都起作用
+     .on("dblclick.zoom", null);   // 去除双击放大事件
+
 }
 
 //创建贝塞尔曲线生成器

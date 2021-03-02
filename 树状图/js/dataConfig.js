@@ -7,6 +7,7 @@
  * relation：妻子/丈夫姓名
  * relationColor：妻子/丈夫的节点颜色
  * relationFamily：妻子/丈夫所在的家族名称
+ * isShadow: 是否展示阴影 true-有阴影 false-没有阴影
  */
 const NODES_ORIGIN = {
   name: '红楼梦任务关系图',
@@ -100,7 +101,8 @@ function assemableData(data = NODES_ORIGIN.children) {
   let length = data.length;
   for (let i = 0; i < length; i++) {
     let item = data[i];
-    item.isExpand = true;
+    item.isExpand = true;   // 是否展开  true-展开 false-收起
+    item.isShadow = false;  // 是否展示阴影 true-有阴影 false-没有阴影
     if(hasChildrenData(item)) assemableData(item.children);
   }
 }
