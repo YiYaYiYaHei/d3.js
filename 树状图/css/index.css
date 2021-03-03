@@ -94,3 +94,32 @@ foreignObject.text > .node-text {
   stroke: #000;
   stroke-width: 3;
 }
+
+/* 右键菜单样式---start--- */
+#contextmenuBox {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 80px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background: #fff;
+}
+#contextmenuBox span {
+  display: inline-block;
+  width: 100%;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+#contextmenuBox span:first-child {
+  border-bottom: 1px solid #ccc;
+}
+#contextmenuBox span:hover {
+  background: rgb(217, 236, 255);
+  font-size: 16px;
+  font-weight: 600;
+}
+/* 右键菜单样式---end--- */

@@ -1,3 +1,5 @@
+/* 生成的是水平方向的树形图: x->d.y   y->d.x
+若要生成垂直方向的树形图--getLinkHorizontal方法的x、y值要反过来，其他的节点的x、y值也要反过来: x->d.x   y->d.y */
 let widthP = 0.9,
     heightP = 0.85;
 
@@ -22,7 +24,8 @@ let svg = d3.select('body').append('svg'),
     g = svg.append('g').attr('class', 'container'),
     linksG = g.append('g').attr('class', 'links-group'),  // linksG、nodesG、textsG三个有顺序要求，线>节点>文字（文字被覆盖是绘制的顺序问题）
     nodesG = g.append('g').attr('class', 'nodes-group'),
-    textsG = g.append('g').attr('class', 'texts-group');
+    textsG = g.append('g').attr('class', 'texts-group'),
+    textForeignObject = null;
 
 // 自执行函数--引入其他js文件   https://www.jb51.net/article/195401.htm
 (function(){
@@ -136,7 +139,7 @@ function svgBindZoom(svg, initScale) {
 //创建贝塞尔曲线生成器
 function getLinkHorizontal() {
   return d3.linkHorizontal()
-           .x(function(d) { return d.y; }) // 生成的曲线在曲线的终点和起点处的切线是水平方向的
+           .x(function(d) { return d.y; }) // d.y: 生成的曲线在曲线的终点和起点处的切线是水平方向的; d.x: 垂直方向的线
            .y(function(d) { return d.x; });
 }
 
@@ -189,20 +192,34 @@ function drawTexts() {
                 .attr('y', d => d.x)
                 .attr('style', 'dominant-baseline: middle; text-anchor: middle;')   // 文本居中对齐
                 .text(d => d.data.name) */
-  return  textsG.selectAll('foreignObject.text')
-                .data(nodesData)
-                .exit()
-                .remove()
-                .data(nodesData)
-                .enter()
-                .append('foreignObject')
-                .attr('class', d => d.data.name === '红楼梦任务关系图' ? 'text big-text' : 'text')
-                .attr('width', d => d.data.name === '红楼梦任务关系图' ? rectBW : rectW)
-                .attr('height', d => d.data.name === '红楼梦任务关系图' ? rectBH : rectH)
-                .attr('x', d => d.data.name === '红楼梦任务关系图' ? d.y - rectBW : d.y - rectW / 2)
-                .attr('y', d => d.data.name === '红楼梦任务关系图' ? d.x - rectBH / 2 : d.x - rectH / 2)
-                .append('xhtml:span')
+  textForeignObject = textsG.selectAll('foreignObject.text')
+                            .data(nodesData)
+                            .exit()
+                            .remove()
+                            .data(nodesData)
+                            .enter()
+                            .append('foreignObject')
+                            .attr('class', d => d.data.name === '红楼梦任务关系图' ? 'text big-text' : 'text')
+                            .attr('width', d => d.data.name === '红楼梦任务关系图' ? rectBW : rectW)
+                            .attr('height', d => d.data.name === '红楼梦任务关系图' ? rectBH : rectH)
+                            .attr('x', d => d.data.name === '红楼梦任务关系图' ? d.y - rectBW : d.y - rectW / 2)
+                            .attr('y', d => d.data.name === '红楼梦任务关系图' ? d.x - rectBH / 2 : d.x - rectH / 2)
+  return  textForeignObject.append('xhtml:span')
                 .attr('class', 'node-text')
+                .attr('title', d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
                 .text(d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
                 
+}
+
+
+function restartHierarchyData(data) {
+  //创建一个层级布局--带有depth、data、height、parent、children等属性
+  // https://www.jianshu.com/p/772db5d0597c
+  hierarchyData = d3.hierarchy(data)
+                    .sum(function (d,i) {
+                        return d.level;
+                    });
+
+  // 生成树状图数据--带有depth、data、height、parent、children等属性
+  treeData = tree(hierarchyData);
 }

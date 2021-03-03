@@ -113,10 +113,27 @@ function hasChildrenData(item) {
 }
 
 // 根据name查找节点
-/* function findName(name, data) {
+function findName(name, data) {
   let length = data.length;
   for (let i = 0; i < length; i++) {
     let item = data[i];
-    if (item.name)
+    if (item.name === name) return item;
+    if (hasChildrenData(item)) {
+      let obj = findName(name, item.children);
+      if (!!obj) return obj;
+    }
   }
-} */
+}
+
+// 根据name查找并删除
+function findNameDEL(name, data) {
+  for (let i = 0; i < data.length; i++) {
+    let item = data[i];
+    if (item.name === name) {
+      data.splice(i, 1);
+    }
+    if (hasChildrenData(item)) {
+      findNameDEL(name, item.children);
+    }
+  }
+}
