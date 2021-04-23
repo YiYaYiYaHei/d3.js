@@ -1,5 +1,5 @@
 /* 生成的是水平方向的树形图: x->d.y   y->d.x
-若要生成垂直方向的树形图--getLinkHorizontal方法的x、y值要反过来，其他的节点的x、y值也要反过来: x->d.x   y->d.y */
+若要生成垂直方向的树形图--getLinkHorizontal方法的x、y值要反过来，其他的节点（node、text）的x、y值也要反过来: x->d.x   y->d.y */
 let widthP = 0.9,
     heightP = 0.85;
 

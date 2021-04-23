@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>d3.js-树状图新增节点</title>
+  <link rel="stylesheet" type="text/css" href="./css/index.css"/>
+</head>
+<body>
+    <a href="https://blog.csdn.net/selina_chan/article/details/51260516" target="_blank" style="display: block;">示例</a>
+    <a href="https://github.com/xswei/d3js_doc/blob/master/API_Reference/API.md" target="_blank">文档V5</a>
+    <a href="https://mm.edrawsoft.cn/template/13390" target="_blank">红楼梦关系图谱</a>
+    <a href="https://www.jianshu.com/p/772db5d0597c" target="_blank">布局</a>
+
+    <div id="contextmenuBox" class="hide">
+      <span onclick="operatorData('add')">新增</span>
+      <span onclick="operatorData('delete')">删除</span>
+    </div>
+
+    <div>
+      <button onclick="zoomBtn('fangda')">放大</el-button>
+      <button onclick="zoomBtn('suoxiao')">缩小</button>
+    </div>
+
+    <script type="text/javascript" src="./js/d3.v5.min.js"></script>
+    <script src="./js/dataConfig.js"></script>
+    <script src="./js/d3Config1.js"></script>
+    <script>
+      let contextmenuBoxDom = document.getElementById('contextmenuBox');  // 获取右键菜单dom
+      
+      initPage(); 
+      
+      function initPage() {
+        assemableData();
+        initTree('thumb');
+        
+        // 节点绑定右击事件
+        nodesBindContextmenuEvt();
+      }
+
+      function nodesBindContextmenuEvt() {
+        resetPageContextmenuEvt(); // 页面事件捕获
+        
+        // 为了保证点击矩形框都会触发右键菜单事件--foreignObject覆盖了rect，texts又覆盖了部分foreignObject，所以给两个元素都绑定了同一事件
+        textForeignObject.attr('data-nodes-name', d => d.data.name);
+        textForeignObject.on('contextmenu', contextmenuEvt);
+        texts.attr('data-nodes-name', d => d.data.name);
+        texts.on('contextmenu', contextmenuEvt);
+      }
+
+      // 页面事件捕获
+      function resetPageContextmenuEvt() {
+        document.addEventListener('contextmenu', () => {
+          // 只有右击节点的时候，才显示展开/收起菜单
+          if (!event.target.getAttribute('data-nodes-name')) {
+            contextmenuBoxDom.setAttribute('class', `hide`);
+          }
+        });
+        document.addEventListener('click', () => {
+          // 点击页面，隐藏展开/收起菜单
+          contextmenuBoxDom.setAttribute('class', `hide`);
+        })
+      }
+
+      function contextmenuEvt(d, i) {
+        event.stopPropagation();   // 阻止事件冒泡-防止点击texts时，执行两次
+        event.preventDefault();     // 阻止浏览器默认行为--保证只有右击节点的时候，才显示展开/收起菜单
+        
+        contextmenuBoxDom.setAttribute('class', `show`);
+        contextmenuBoxDom.setAttribute('style', `left: ${d3.event.clientX + 20}px; top: ${d3.event.clientY}px`)
+
+        // 通过将节点的id作为属性设置给展开/收起按钮，方便查找数据
+        let childrensDom = contextmenuBoxDom.children;
+        Array.prototype.map.call(childrensDom, (item, index, list) => {
+          item.setAttribute('data-nodes-name', d.data.name);
+          item.setAttribute('data-nodes-pos', `${d.x},${d.y}`);
+        })
+      }
+
+      function operatorData(type) {
+        let name = event.target.getAttribute('data-nodes-name');
+        switch(type) {
+          case 'add':
+              addNodes(name);
+              break;
+          case 'delete':
+              findNameDEL(name, NODES_ORIGIN.children);
+              break;
+        }
+        restartTree();
+      }
+      
+      // 新增节点
+      function addNodes(name) {
+        let obj = findName(name, NODES_ORIGIN.children);
+        if (obj) {
+          (obj.children || []).map(it => it.level++);
+          obj.children = [{
+            name: `新增_${+new Date()}`,
+            level: obj.level + 1,
+            color: obj.color,
+            isExpand: true,   // 是否展开  true-展开 false-收起
+            isShadow: false,  // 是否展示阴影 true-有阴影 false-没有阴影
+            children: obj.children
+          }];
+        }
+      }
+    
+      function restartTree() {
+        restartHierarchyData(NODES_ORIGIN);  // 重新生成树
+        makeTreeData();  // 重新生成数据--此时,不能对_children重新赋值,防止初始化时的展开数据丢失
+        drawTree('remove');  // 绘制
+
+        // 节点绑定右击事件
+        nodesBindContextmenuEvt();   // 重新绘制后，此时的节点全为新生成的，需要重新绑定事件
+      }
+      
+      // 按钮控制放大/缩小
+      function zoomBtn(type) {
+        let _initScale = globalTransform;
+        switch(type) {
+          case 'fangda':
+             _initScale.k += 0.1;
+              break;
+          case 'suoxiao':
+            _initScale.k -= 0.1;
+              break;
+        }
+        if (_initScale.k < 0.1 ) _initScale.k = 0.1;
+        g.attr( "transform", _initScale);
+      }
+
+      // ===============================resize============================================
+      // 官网未提供树形图的restart方法，因此只能手动去修改位置
+      window.onresize = () => {
+        setSvgSize(svg);
+        
+        // 设置初始缩放比列
+        translateX = getSVGSize().width * 0.2;  // 设置g.container的x位置
+        g.attr("transform", `translate(${translateX}, ${getSVGSize().height / 2}) scale(${initScale})`);
+      }
+    </script>
+</body>
+</html>
