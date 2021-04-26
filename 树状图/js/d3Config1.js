@@ -56,21 +56,21 @@ function initTree(type) {
 
   //创建一个层级布局--带有depth、data、height、parent、children等属性
   hierarchyData = d3.hierarchy(NODES_ORIGIN)
-    .sum(function (d, i) {
-      return d.level;
-    });
+                    .sum(function (d, i) {
+                      return d.level;
+                    });
 
   // 创建树状图--nodeSize和size不要一起使用
   tree = d3.tree()
-    .nodeSize([140, 160]) // [width, height]：width值越大，兄弟节点之间离的越近；height值越大，父节点与子节点之间离的越远
-  /* .size([getSVGSize().width-400, getSVGSize().height-200])
-  .separation(function (a,b) {
-     console.log((a.parent == b.parent ? 1 : 2) / a.depth)
-     return (a.parent == b.parent ? 1 : 2) / a.depth;  // 设置相邻两个叶子节点的距离
-   }) */
+           .nodeSize([140, 160]) // [width, height]：width值越大，兄弟节点之间离的越近；height值越大，父节点与子节点之间离的越远
+           /* .size([getSVGSize().width-400, getSVGSize().height-200])
+           .separation(function (a,b) {
+             console.log((a.parent == b.parent ? 1 : 2) / a.depth)
+             return (a.parent == b.parent ? 1 : 2) / a.depth;  // 设置相邻两个叶子节点的距离
+           }) */
   
   // 生成树状图数据--带有depth、data、height、parent、children等属性
-  treeData = tree(hierarchyData);
+  treeData = tree(hierarchyData);  // tree(hierarchyData)的tree跟tree = d3.tree()一致
   console.log("treeData: ", treeData);
 
   // 生成nodes、links
@@ -128,14 +128,14 @@ function getSVGSize() {
 // 重新设置svg宽高
 function setSvgSize(svg) {
   svg.attr('width', getSVGSize().width)
-    .attr('height', getSVGSize().height);
+     .attr('height', getSVGSize().height);
 }
 
 // svg绑定zoom事件
 function svgBindZoom(svg, initScale) {
   let zoom = d3.zoom()
-    .scaleExtent([0.1, 10]) // 放大倍数scaleExtent([最小倍数, 最大倍数])
-    .on('zoom', zoomed);
+               .scaleExtent([0.1, 10]) // 放大倍数scaleExtent([最小倍数, 最大倍数])
+               .on('zoom', zoomed);
 
   zoom.scaleTo(svg, initScale); // 设置初始缩放比例--缩放正确应用于svg元素,但是当你调用zoom.scaleTo(svg,2)时,你正在缩放组元素,而不是svg元素.
 
@@ -146,46 +146,46 @@ function svgBindZoom(svg, initScale) {
   }
 
   svg.call(zoom) // 把zoom放到整个svg上，而不是特定的元素上，才能保证在整个图形元素区域都起作用
-    .on("dblclick.zoom", null); // 去除双击放大事件
+     .on("dblclick.zoom", null); // 去除双击放大事件
 
 }
 
 // 绘制线--绘制直线
 function drawLinks(linksG) {
   return linksG.selectAll('path.path')
-    .data(linksData)
-    .exit()
-    .remove()
-    .data(linksData)
-    .enter()
-    .append('line')
-    .attr('class', 'path')
-    .attr('x1', d => d.source.x)
-    .attr("y1", d => d.source.y)
-    .attr("x2", d => d.target.x)
-    .attr("y2", d => d.target.y)
-    .attr("stroke", "black")
-    .attr("stroke-width", "2px");
+              .data(linksData)
+              .exit()
+              .remove()
+              .data(linksData)
+              .enter()
+              .append('line')
+              .attr('class', 'path')
+              .attr('x1', d => d.source.x)
+              .attr("y1", d => d.source.y)
+              .attr("x2", d => d.target.x)
+              .attr("y2", d => d.target.y)
+              .attr("stroke", "black")
+              .attr("stroke-width", "2px");
 }
 
 // 绘制矩形节点
 function drawNodes(nodesG) {
   return nodesG.selectAll('rect.rect')
-    .data(nodesData)
-    .exit()
-    .remove()
-    .data(nodesData)
-    .enter()
-    .append('rect')
-    .attr('class', d => d.data.name === '红楼梦任务关系图' ? 'rect big-rect' : 'rect')
-    .attr('fill', d => d.data.name === '红楼梦任务关系图' ? 'rgb(204, 204, 204, 0.5)' : d.data.relationFamily ? d.data.relationColor : d.data.color)
-    .attr('width', d => d.data.name === '红楼梦任务关系图' ? rectBW : rectW)
-    .attr('height', d => d.data.name === '红楼梦任务关系图' ? rectBH : rectH)
-    .attr('x', d => d.data.name === '红楼梦任务关系图' ? d.x - rectBW + 100 : d.x - rectW / 2)
-    .attr('y', d => d.data.name === '红楼梦任务关系图' ? d.y - rectBH : d.y - rectH / 2)
-    .attr("transform", function (d) {
-      // return "translate(" + d.y + "," + d.x + ")";
-    })
+               .data(nodesData)
+               .exit()
+               .remove()
+               .data(nodesData)
+               .enter()
+               .append('rect')
+               .attr('class', d => d.data.name === '红楼梦任务关系图' ? 'rect big-rect' : 'rect')
+               .attr('fill', d => d.data.name === '红楼梦任务关系图' ? 'rgb(204, 204, 204, 0.5)' : d.data.relationFamily ? d.data.relationColor : d.data.color)
+               .attr('width', d => d.data.name === '红楼梦任务关系图' ? rectBW : rectW)
+               .attr('height', d => d.data.name === '红楼梦任务关系图' ? rectBH : rectH)
+               .attr('x', d => d.data.name === '红楼梦任务关系图' ? d.x - rectBW + 100 : d.x - rectW / 2)
+               .attr('y', d => d.data.name === '红楼梦任务关系图' ? d.y - rectBH : d.y - rectH / 2)
+               .attr("transform", function (d) {
+                 // return "translate(" + d.y + "," + d.x + ")";
+               })
 }
 
 // 绘制文本
@@ -201,21 +201,21 @@ function drawTexts(textsG) {
                 .attr('style', 'dominant-baseline: middle; text-anchor: middle;')   // 文本居中对齐
                 .text(d => d.data.name) */
   textForeignObject = textsG.selectAll('foreignObject.text')
-    .data(nodesData)
-    .exit()
-    .remove()
-    .data(nodesData)
-    .enter()
-    .append('foreignObject')
-    .attr('class', d => d.data.name === '红楼梦任务关系图' ? 'text big-text' : 'text')
-    .attr('width', d => d.data.name === '红楼梦任务关系图' ? rectBW : rectW)
-    .attr('height', d => d.data.name === '红楼梦任务关系图' ? rectBH : rectH)
-    .attr('x', d => d.data.name === '红楼梦任务关系图' ? d.x - rectBW / 2 : d.x - rectW / 2)
-    .attr('y', d => d.data.name === '红楼梦任务关系图' ? d.y - rectBH : d.y - rectH / 2)
+                            .data(nodesData)
+                            .exit()
+                            .remove()
+                            .data(nodesData)
+                            .enter()
+                            .append('foreignObject')
+                            .attr('class', d => d.data.name === '红楼梦任务关系图' ? 'text big-text' : 'text')
+                            .attr('width', d => d.data.name === '红楼梦任务关系图' ? rectBW : rectW)
+                            .attr('height', d => d.data.name === '红楼梦任务关系图' ? rectBH : rectH)
+                            .attr('x', d => d.data.name === '红楼梦任务关系图' ? d.x - rectBW / 2 : d.x - rectW / 2)
+                            .attr('y', d => d.data.name === '红楼梦任务关系图' ? d.y - rectBH : d.y - rectH / 2)
   return textForeignObject.append('xhtml:span')
-    .attr('class', 'node-text')
-    .attr('title', d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
-    .text(d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
+                          .attr('class', 'node-text')
+                          .attr('title', d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
+                          .text(d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
 
 }
 
@@ -224,9 +224,9 @@ function restartHierarchyData(data) {
   //创建一个层级布局--带有depth、data、height、parent、children等属性
   // https://www.jianshu.com/p/772db5d0597c
   hierarchyData = d3.hierarchy(data)
-    .sum(function (d, i) {
-      return d.level;
-    });
+                    .sum(function (d, i) {
+                      return d.level;
+                    });
 
   // 生成树状图数据--带有depth、data、height、parent、children等属性
   treeData = tree(hierarchyData);
@@ -261,8 +261,8 @@ function drawThumb() {
 // 缩略图绑定平移事件
 function thumbBindZoom() {
   let zoom = d3.zoom()
-            .scaleExtent([0.1, 10])   // 放大倍数scaleExtent([最小倍数, 最大倍数])
-            .on('zoom', zoomed);
+               .scaleExtent([0.1, 10])   // 放大倍数scaleExtent([最小倍数, 最大倍数])
+               .on('zoom', zoomed);
 
   zoom.scaleTo(thumbSvg, 0.1);  // 设置初始缩放比例--缩放正确应用于svg元素,但是当你调用zoom.scaleTo(svg,2)时,你正在缩放组元素,而不是svg元素.
 
