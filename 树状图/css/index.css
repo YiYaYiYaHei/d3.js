@@ -88,6 +88,30 @@ foreignObject.text > .node-text {
   color: #000;
   text-align: center;
 }
+
+foreignObject.icon-text {
+  font-size: 14px;
+}
+foreignObject.icon-text > .node-text {
+  width: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #000;
+  text-align: center;
+}
+foreignObject.icon-nodes-text .fa {
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  line-height: 50px;
+  text-align: center;
+  color: #fff; 
+  background: #262e54; 
+  border-radius: 50%;
+  box-sizing: border-box;
+}
 /* 文本样式结束---end--- */
 
 .big-rect {

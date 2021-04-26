@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>d3.js-树状图icon</title>
+  <link rel="stylesheet" type="text/css" href="./fonts/font-awesome.min.css"/>
+  <link rel="stylesheet" type="text/css" href="./css/index.css"/>
+</head>
+<body>
+    <a href="https://blog.csdn.net/selina_chan/article/details/51260516" target="_blank" style="display: block;">示例</a>
+    <a href="https://github.com/xswei/d3js_doc/blob/master/API_Reference/API.md" target="_blank">文档V5</a>
+    <a href="https://mm.edrawsoft.cn/template/13390" target="_blank">红楼梦关系图谱</a>
+    <a href="https://www.freesion.com/article/6816382577/" target="_blank">v5</a>
+
+    <script type="text/javascript" src="./js/d3.v5.min.js"></script>
+    <script src="./js/dataConfig.js"></script>
+    <script src="./js/d3Config.js"></script>
+
+    <script>
+      let circleR = 25,
+          bigerCircleR = 28,
+          iconText = null,
+          nodesTextG = null;
+
+      initPage();
+
+      function initPage() {
+        assemableData();
+        initTree('iconNode');
+        
+        nodesTextG = g.append('g').attr('class', 'nodesTexts-group'),
+        // 绘制iconNode--使用foreignObject实现icon垂直、水平居中（设置span的宽高）
+        nodes = drawIconNodes();
+        iconTexts = drawIconNodesTexts();
+        // 绘制文本
+        texts = drawIconTexts();  
+        // 绘制阴影
+        drawFiltershadow();
+        // node绑定鼠标事件
+        nodesBindMouseEvt();
+      }
+      
+      // 绘制iconNode
+      function drawIconNodes() {
+        return  nodesG.selectAll('circle.nodes')
+                      .data(nodesData)
+                      .enter()
+                      .append('circle')
+                      .attr('class', 'nodes')
+                      .attr('r', circleR)
+                      // .attr('fill', '#262e54')
+                      .attr('cx', d => d.y)
+                      .attr('cy', d => d.x);
+      }
+
+      // 绘制icon
+      function drawIconNodesTexts() {
+        let iconTextForeignObject = nodesTextG.selectAll('foreignObject.icon-nodes-text')
+                            .data(nodesData)
+                            .exit()
+                            .remove()
+                            .data(nodesData)
+                            .enter()
+                            .append('foreignObject')
+                            .attr('class', 'icon-nodes-text')
+                            .attr('width', circleR * 2)
+                            .attr('height', circleR * 2)
+                            .attr('x', d => d.y)
+                            .attr('y', d => d.x)
+                            .attr("transform", `translate(-${circleR}, -${circleR})`)   // x:偏移width/2；y:偏移圆半径；给span标签设置ellipsis可实现超出...
+        return  iconTextForeignObject.append('xhtml:span')
+                                     .attr('class', 'node-text fa fa-flag');
+                    
+      }
+
+      // 绘制文本
+      function drawIconTexts() {
+        textForeignObject = textsG.selectAll('foreignObject.icon-text')
+                            .data(nodesData)
+                            .exit()
+                            .remove()
+                            .data(nodesData)
+                            .enter()
+                            .append('foreignObject')
+                            .attr('class', 'icon-text')
+                            .attr('width', 200)
+                            .attr('height', 20)
+                            .attr('x', d => d.y)
+                            .attr('y', d => d.x)
+                            .attr("transform", `translate(-100, ${circleR})`)   // x:偏移width/2；y:偏移圆半径；给span标签设置ellipsis可实现超出...
+        return  textForeignObject.append('xhtml:span')
+                      .attr('class', 'node-text ellipsis')
+                      .text(d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
+      }
+
+      // 绘制圆阴影
+      function drawFiltershadow() {
+        let filter = svg.append('defs')
+                        .attr('class', 'filter-shadow')
+                        .append('filter')
+                        .attr('id', 'shadow');  // <filter> 标记需要一个id属性，它是这个滤镜的标志。SVG图形使用这个id来引用滤镜
+        filter.append('feGaussianBlur')
+              .attr('result', 'blurOut')
+              .attr('in', 'SourceGraphic')
+              .attr('stdDeviation', '4');   // 设置阴影尺寸
+        filter.append('feBlend')
+              .attr('in', 'SourceGraphic')
+              .attr('in2', 'blurOut')
+              .attr('mode', 'normal');
+      }
+      
+      // node绑定鼠标事件
+      function nodesBindMouseEvt() {
+        // 由于texts遮住了nodes，滑上nodes实际就是滑上texts
+        iconTexts.on('mouseover', (event) => mouseEvt(event, true));
+        iconTexts.on('mouseout', (event) => mouseEvt(event, false));
+      }
+      
+      // 鼠标事件：event-事件对象，flag-true鼠标滑上事件，false鼠标滑离事件
+      function mouseEvt(event, flag) {
+        let name = event.data.name;
+        // 循环设置isShadow--是否展示阴影 true-有阴影 false-没有阴影
+        setIsShadow(name, flag);
+
+        // 绘制阴影节点
+        drawShadowNodes();
+      }
+      
+      // 设置节点+线的isShadow
+      function setIsShadow(name, flag) {
+        let list = findLink(name);
+        if (!list.length) {
+          // 若是最后一层节点，当前节点显示阴影
+          nodesData.map(it => it.data.isShadow = it.data.name === name ? flag : false);
+        } else {
+          // 若不是最后一层节点，节点+线显示阴影
+          list.map(it => {
+            let obj = linksData.find(ite => ite === it);
+            if (obj) {
+              obj.isShadow = flag;
+              setNodesIsShadow(obj.source.data.name, flag);
+              setNodesIsShadow(obj.target.data.name, flag);
+            }
+          });
+        }
+      }
+
+      // 根据name递归查找线路
+      function findLink(name, list = []) {
+        linksData.map(it => {
+          it.isShadow = it.source.data.name === name;
+          if (it.isShadow) {
+            list.push(it);
+            findLink(it.target.data.name, list);
+          }
+        })
+        return list;
+      }
+      
+      // 绘制阴影节点
+      function drawShadowNodes() {
+        // 设置circle阴影
+        nodes.attr('r', d => d.data.isShadow ? bigerCircleR : circleR)
+             .attr('fill', d => d.data.isShadow ? '#41b2ff' : '')
+             .attr('filter', d => d.data.isShadow ? 'url(#shadow)' : '');
+
+        // 设置线条样式
+        links.attr('stroke', d => d.isShadow ? '#000' : 'pink')   
+             .attr('stroke-width', d => d.isShadow ? 2 : 1);
+        
+        // 设置文本边框
+        iconTexts.attr('style', d => d.data.isShadow ? `border: 2px solid #fbfbfb; line-height: ${(circleR - 2) * 2}px;` : '');
+      }
+      
+      // 设置nodes的isShadow
+      function setNodesIsShadow(name, flag) {
+        (nodesData.find(it => it.data.name === name) || {data: {isShadow: false}}).data.isShadow = flag;
+      }
+
+    </script>
+</body>
+</html>

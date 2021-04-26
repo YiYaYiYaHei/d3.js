@@ -33,7 +33,7 @@ let svg = d3.select('body').append('svg'),
 })()
 
 // 初始化
-function initTree() {
+function initTree(type) {
   // 重新设置svg宽高
   setSvgSize(svg);
 
@@ -51,7 +51,7 @@ function initTree() {
   
   // 创建树状图--nodeSize和size不要一起使用
   tree = d3.tree()
-           .nodeSize([70, 160])  // [width, height]：width值越大，兄弟节点之间离的越近；height值越大，父节点与子节点之间离的越远
+           .nodeSize([140, 160])  // [width, height]：width值越大，兄弟节点之间离的越近；height值越大，父节点与子节点之间离的越远
            /* .size([getSVGSize().width-400, getSVGSize().height-200])
            .separation(function (a,b) {
               console.log((a.parent == b.parent ? 1 : 2) / a.depth)
@@ -70,7 +70,7 @@ function initTree() {
   linkHorizontal = getLinkHorizontal();
   
   // 绘制树
-  drawTree();
+  drawTree(type);
 }
 
 function makeTreeData(type) {
@@ -95,8 +95,8 @@ function drawTree(type) {
   if (type === 'remove') removeTree();
   
   links = drawLinks();  // 绘制线
-  nodes = drawNodes();  // 绘制矩形节点
-  texts = drawTexts();  // 绘制文本
+  if (type !== 'iconNode') nodes = drawNodes();  // 绘制矩形节点
+  if (type !== 'iconNode') texts = drawTexts();  // 绘制文本
 }
 
 function removeTree() {

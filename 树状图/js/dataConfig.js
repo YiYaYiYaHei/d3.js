@@ -33,7 +33,7 @@ const NODES_ORIGIN = {
                     {name: '贾迎春', level: 4, relation: '孙绍祖', color: '#67C23A'}
                 ]},
                 {name: '贾政', level: 3, relation: '王夫人', color: '#67C23A', relationFamily: '王夫人之父', relationColor: '#2acaca', children: [
-                    {name: '贾珠', level: 4, relation: '李纨', color: '#67C23A', children: [
+                    {name: '贾珠贾珠贾珠贾珠贾珠贾珠贾珠贾珠贾珠贾珠贾珠贾珠贾珠贾珠', level: 4, relation: '李纨', color: '#67C23A', children: [
                         {name: '贾兰', level: 5, color: '#67C23A'}
                     ]},
                     {name: '贾元春', level: 4, color: '#67C23A'},
