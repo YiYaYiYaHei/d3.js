@@ -30,7 +30,7 @@ let svg = d3.select('body').append('svg'),
 // 缩略图相关数据
 let thumbW = 400,
     thumbH = 200,
-    thumbSvg = null, 
+    thumbSvg = null,
     thumbG = null,
     scaleX = getSVGSize().width / thumbW,   // 缩略图与主视图的平移比列
     scaleY = getSVGSize().height / thumbH;  // 缩略图与主视图的平移比列
@@ -60,15 +60,30 @@ function initTree(type) {
                       return d.level;
                     });
 
-  // 创建树状图--nodeSize和size不要一起使用
+  // 创建树状图--nodeSize和size不能一起使用
   tree = d3.tree()
-           .nodeSize([140, 160]) // [width, height]：width值越大，兄弟节点之间离的越近；height值越大，父节点与子节点之间离的越远
-           /* .size([getSVGSize().width-400, getSVGSize().height-200])
-           .separation(function (a,b) {
-             console.log((a.parent == b.parent ? 1 : 2) / a.depth)
-             return (a.parent == b.parent ? 1 : 2) / a.depth;  // 设置相邻两个叶子节点的距离
-           }) */
-  
+  if (type !== 'center') {
+    // nodeSize可以设置兄弟、父子节点间的间隔
+    tree.nodeSize([140, 160]) // [width, height]：width值越大，兄弟节点之间离的越近；height值越大，父节点与子节点之间离的越远
+  } else {
+    // 树状图居中展示--但是无法设置兄弟节点间的间隔(separation返回固定值不生效)
+    /* tree.size([getSVGSize().width, getSVGSize().height])
+        .separation(function (a,b) {
+          return a.parent == b.parent ? 1 : 2;  // 设置相邻两个叶子节点的距离
+        }) */
+
+    // 使用nodeSize+separation+g初始偏移，一定程度上可以实现树状图在可视区域内水平居中
+    tree.nodeSize([1, 160])
+        .separation(function (a,b) {
+          return 200;  // 设置相邻两个叶子节点的距离; 200实际为矩形框的宽度
+        });
+    // 设置g偏移--居中展示(x-svg宽度一半，y-固定值)
+    setTimeout(() => {
+      g.attr('transform', `translate(${getSVGSize().width / 2}, ${100}) scale(${initScale})`);
+    });
+  }
+
+
   // 生成树状图数据--带有depth、data、height、parent、children等属性
   treeData = tree(hierarchyData);  // tree(hierarchyData)的tree跟tree = d3.tree()一致
   console.log("treeData: ", treeData);
@@ -81,7 +96,7 @@ function initTree(type) {
 
   // 绘制缩略图
   if (type === 'thumb') drawThumb();
-  
+
   // svg绑定zoom事件
   svgBindZoom(svg, initScale);
 }
@@ -90,7 +105,7 @@ function makeTreeData(type) {
   //获取边和节点数据--带有depth、data、height、parent、children等属性
 
   /* 从当前节点开始返回其后代节点数组
-   *  treeData.descendants()等同v3版本的tree.nodes() 
+   *  treeData.descendants()等同v3版本的tree.nodes()
    *  reverse():删除没有children的节点
    */
   nodesData = treeData.descendants().reverse();
@@ -142,7 +157,7 @@ function svgBindZoom(svg, initScale) {
   function zoomed() {
     globalTransform = d3.event.transform;
     g.attr("transform", globalTransform);
-    thumbG.attr( "transform", `translate(${globalTransform.x / scaleX}, ${globalTransform.y / scaleY}) scale(0.1)`);
+    thumbG && thumbG.attr( "transform", `translate(${globalTransform.x / scaleX}, ${globalTransform.y / scaleY}) scale(0.1)`);
   }
 
   svg.call(zoom) // 把zoom放到整个svg上，而不是特定的元素上，才能保证在整个图形元素区域都起作用
@@ -252,7 +267,7 @@ function drawThumb() {
   thumbLinksG = thumbG.append('g').attr('class', 'thumb-links-group'); // linksG、nodesG、textsG三个有顺序要求，线>节点>文字（文字被覆盖是绘制的顺序问题）
   thumbNodesG = thumbG.append('g').attr('class', 'thumb-nodes-group');
   thumbTextsG = thumbG.append('g').attr('class', 'thumb-texts-group');
-  
+
   thumbLinks = drawLinks(thumbLinksG); // 绘制线
   thumbNodes = drawNodes(thumbNodesG); // 绘制矩形节点
   thumbTexts = drawTexts(thumbTextsG); // 绘制文本

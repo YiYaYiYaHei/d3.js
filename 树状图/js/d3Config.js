@@ -39,7 +39,7 @@ function initTree(type) {
 
   // svg绑定zoom事件
   svgBindZoom(svg, initScale);
-  
+
   // 设置初始缩放比列
   g.attr("transform", `translate(${translateX}, ${getSVGSize().height / 2}) scale(${initScale})`);
 
@@ -48,7 +48,7 @@ function initTree(type) {
                     .sum(function (d,i) {
                         return d.level;
                     });
-  
+
   // 创建树状图--nodeSize和size不要一起使用
   tree = d3.tree()
            .nodeSize([140, 160])  // [width, height]：width值越大，兄弟节点之间离的越近；height值越大，父节点与子节点之间离的越远
@@ -57,18 +57,18 @@ function initTree(type) {
               console.log((a.parent == b.parent ? 1 : 2) / a.depth)
               return (a.parent == b.parent ? 1 : 2) / a.depth;  // 设置相邻两个叶子节点的距离
             }) */
-           
-  
+
+
   // 生成树状图数据--带有depth、data、height、parent、children等属性
   treeData = tree(hierarchyData);
   console.log("treeData: ", treeData);
-  
+
   // 生成nodes、links
   makeTreeData();
-    
+
   //创建贝塞尔曲线生成器
   linkHorizontal = getLinkHorizontal();
-  
+
   // 绘制树
   drawTree(type);
 }
@@ -77,10 +77,10 @@ function makeTreeData(type) {
   //获取边和节点数据--带有depth、data、height、parent、children等属性
 
   /* 从当前节点开始返回其后代节点数组
-  *  treeData.descendants()等同v3版本的tree.nodes() 
+  *  treeData.descendants()等同v3版本的tree.nodes()
   *  reverse():删除没有children的节点
   */
-  nodesData = treeData.descendants().reverse();   
+  nodesData = treeData.descendants().reverse();
   if (type !== 'remove') {
     nodesData.map(it => it._children = it.children);  // _children是children的副本,记录展开时的数据(只在初始化时调用)
     nodesDataOrigin = [].concat(nodesData);  // 供一键展开使用(点击"收起"后,此时nodesData的长度减少了)
@@ -93,7 +93,7 @@ function makeTreeData(type) {
 // 绘制
 function drawTree(type) {
   if (type === 'remove') removeTree();
-  
+
   links = drawLinks();  // 绘制线
   if (type !== 'iconNode') nodes = drawNodes();  // 绘制矩形节点
   if (type !== 'iconNode') texts = drawTexts();  // 绘制文本
@@ -125,7 +125,7 @@ function svgBindZoom(svg, initScale) {
                .on('zoom', zoomed);
 
   zoom.scaleTo(svg, initScale);  // 设置初始缩放比例--缩放正确应用于svg元素,但是当你调用zoom.scaleTo(svg,2)时,你正在缩放组元素,而不是svg元素.
-  
+
   function zoomed() {
       let transform = d3.event.transform;
       g.attr( "transform", transform);
@@ -208,7 +208,7 @@ function drawTexts() {
                 .attr('class', 'node-text')
                 .attr('title', d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
                 .text(d => d.data.relation ? `${d.data.name} & ${d.data.relation}` : d.data.name)
-                
+
 }
 
 

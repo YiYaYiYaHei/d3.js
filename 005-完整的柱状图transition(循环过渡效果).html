@@ -32,9 +32,9 @@
             left: 30,
             right: 30
         };
-        let width = 500, 
+        let width = 500,
             height = 500;
-        
+
         /* 创建X/Y轴 */
         function createXY(dom, translateX, translateY, cb, className = "axios") {
             dom.append("g")
@@ -47,7 +47,7 @@
                     .append("svg")
                     .attr("width", width)
                     .attr("height", height);
-        
+
         let xData = [],
             yData = [10, 20, 30, 40, 33, 24, 12, 5];
         let _time = +new Date();
@@ -56,7 +56,7 @@
         };
         /* 格式化时间  年-月-日 时:分:秒格式：%Y-%m-%d %H:%M:%S*/
         let format = (time) => d3.timeFormat("%H:%M:%S")(time);
-        
+
         /* 创建X轴
         * .domain(d3.range(xData.length)): d3.range(xData.length)为[0, 1, 2, 3, 4, 5, 6, 7]
         * scaleBand：序数比例尺；与scaleOrdinal区别：scaleBand只能是domain中的数据集，scaleOrdinal不用;   https://segmentfault.com/a/1190000011006780
@@ -65,35 +65,35 @@
         let xScale = d3.scaleBand()
                        .domain(xData)   /* scaleBand：序数比例尺；参数为数组
                                            与scaleOrdinal区别：scaleBand只能是domain中的数据集，scaleOrdinal不用; 参数为数组 ; scaleOrdinal不支持rangeRound
-                                           https://segmentfault.com/a/1190000011006780 
+                                           https://segmentfault.com/a/1190000011006780
                                         */
                        .rangeRound([0, width - padding.left - padding.right]);  /* rangeRound: 分成区间段并保证每个区间段的起点值都是整数;
-                                                                                   rangeRound等价于V3中的rangeRoundBands 
+                                                                                   rangeRound等价于V3中的rangeRoundBands
                                                                                    scaleOrdinal不支持rangeRound
                                                                                 */
         let xAxis = d3.axisBottom(xScale)
                       .tickValues(xData)
                       .tickFormat(format);
         createXY(svg, padding.top, height - padding.bottom, xAxis);
-        
+
         /* 创建Y轴 */
         let yScale = d3.scaleLinear()
                        .domain([0, d3.max(yData)])
                        .range([height - padding.top - padding.bottom, 0]);
         let yAxis = d3.axisLeft(yScale);
         createXY(svg, padding.left, padding.top, yAxis);
-        
+
         /* 矩形间的空白 */
         let rectPadding = 4;
-        
+
         /* 绘制矩形 */
         let rect = svg.selectAll("rect")
                       .data(yData)
                       .enter()
                       .append("rect")
-                      .attr("width", xScale.bandwidth() - rectPadding)  /*  step(): 两个区间段之间的距离（区间段宽度+两个区间段之间的距离）; 
+                      .attr("width", xScale.bandwidth() - rectPadding)  /*  step(): 两个区间段之间的距离（区间段宽度+两个区间段之间的距离）;
                                                                             bandwidth()：获取区间段的宽度
-                                                                            https://www.dazhuanlan.com/2020/03/10/5e671370b0b91/ 
+                                                                            https://www.dazhuanlan.com/2020/03/10/5e671370b0b91/
                                                                         */
                       .attr("height", (d, i) => {
                                 /* yScale(d): 当前的y坐标，从左上角开始计算 */
@@ -103,7 +103,7 @@
                       .attr("transform", `translate(${padding.left}, ${padding.top})`)
                       .attr("x", (d, i) => xScale(xData[i]))
                       .attr("y", (d, i) => yScale(d));
-        
+
         /* 绘制矩形标注 */
         let text = svg.selectAll(".numText")
                       .data(yData)
@@ -115,10 +115,10 @@
                       .attr("dx", (xScale.step() - rectPadding) / 2)
                       .attr("dy", padding.top / 2)
                       .text((d, i) => d)
-        
+
 
         /* ==============================柱状图动态效果============================== */
-        
+
         /* 矩形过渡 */
         let run = () => {
             rect.transition()
@@ -136,7 +136,7 @@
                 .attr("height", (d, i) => height - padding.top - padding.bottom - yScale(d))
                 .attr("y", (d, i) => {
                     return yScale(d);
-                })  
+                })
                 .attr("fill", "#ff5623")  // 以上实现出现矩形框操作：高度置为实际高，y值置为实际值；过渡矩形框背景色
                 .transition()
                 .duration(5000)   // 以上为等待矩形框标注上下跳动操作

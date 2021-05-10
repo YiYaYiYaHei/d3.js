@@ -29,20 +29,20 @@
     <script src="./js/d3Config1.js"></script>
     <script>
       let contextmenuBoxDom = document.getElementById('contextmenuBox');  // 获取右键菜单dom
-      
-      initPage(); 
-      
+
+      initPage();
+
       function initPage() {
         assemableData();
-        initTree();
-        
+        initTree('center');
+
         // 节点绑定右击事件
         nodesBindContextmenuEvt();
       }
 
       function nodesBindContextmenuEvt() {
         resetPageContextmenuEvt(); // 页面事件捕获
-        
+
         // 为了保证点击矩形框都会触发右键菜单事件--foreignObject覆盖了rect，texts又覆盖了部分foreignObject，所以给两个元素都绑定了同一事件
         textForeignObject.attr('data-nodes-name', d => d.data.name);
         textForeignObject.on('contextmenu', contextmenuEvt);
@@ -67,7 +67,7 @@
       function contextmenuEvt(d, i) {
         event.stopPropagation();   // 阻止事件冒泡-防止点击texts时，执行两次
         event.preventDefault();     // 阻止浏览器默认行为--保证只有右击节点的时候，才显示展开/收起菜单
-        
+
         contextmenuBoxDom.setAttribute('class', `show`);
         contextmenuBoxDom.setAttribute('style', `left: ${d3.event.clientX + 20}px; top: ${d3.event.clientY}px`)
 
@@ -87,7 +87,7 @@
               break;
           case 'delete':
               findNameDEL(name, NODES_ORIGIN.children);
-              break;   
+              break;
           case 'center':
               let pos = event.target.getAttribute('data-nodes-pos');
               posList = pos.split(',')
@@ -96,7 +96,7 @@
         }
         restartTree();
       }
-      
+
       // 新增节点
       function addNodes(name) {
         let obj = findName(name, NODES_ORIGIN.children);
@@ -112,7 +112,7 @@
           }];
         }
       }
-    
+
       function restartTree() {
         restartHierarchyData(NODES_ORIGIN);  // 重新生成树
         makeTreeData();  // 重新生成数据--此时,不能对_children重新赋值,防止初始化时的展开数据丢失
@@ -121,7 +121,7 @@
         // 节点绑定右击事件
         nodesBindContextmenuEvt();   // 重新绘制后，此时的节点全为新生成的，需要重新绑定事件
       }
-      
+
       // 按钮控制放大/缩小
       function zoomBtn(type) {
         let _initScale = globalTransform;
@@ -136,22 +136,22 @@
         if (_initScale.k < 0.1 ) _initScale.k = 0.1;
         g.attr( "transform", _initScale);
       }
-      
-      
+
+
       function centerNode(name, posList) {
         var gTransform = d3.select("#gContainer").attr("transform").split(' scale')[0]; //获得g元素的translate(x,y)
         var gPos = gTransform.substring(10, gTransform.length - 1 ); //得到x,y字符串
         var gPoxList = gPos.split(","); //拆分字符串
-        var gx = Number(gPoxList[0]), 
+        var gx = Number(gPoxList[0]),
             gy = Number(gPoxList[1]); //字符串转数字
 
-        var x = posList[0]*1 + gx, 
+        var x = posList[0]*1 + gx,
             y = posList[1]*1 + gy; //得到该元素在wrapper左上角的位置，因为该元素在wrapper中的位置=g元素的位置+该元素的x,y
-        
+
         let gSize = document.getElementById('gContainer').getBoundingClientRect();
         nodeX = x-gSize.width/2; //设置的scrollLeft的值
         nodeY = y-gSize.height/2; //设置的scrollTop的值
-        
+
         console.log(nodeX, nodeY,  gPoxList)
         console.log(document.getElementById('gContainer').getBoundingClientRect())
         g.attr("transform", `translate(${posList[0]*1}, ${posList[1]*1}) scale(${globalTransform.k})`);
